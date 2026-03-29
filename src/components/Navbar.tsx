@@ -20,7 +20,7 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="container-custom flex items-center justify-between h-16 sm:h-20 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="TriSutra Ayurveda" className="h-10 sm:h-12 w-auto" />
+          <img src={logo} alt="TriSutra Ayurveda" className="h-14 sm:h-16 w-auto" />
         </Link>
 
         {/* Desktop Nav */}
