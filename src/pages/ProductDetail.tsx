@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Shield, Brain, Zap, Baby, Calendar, CheckCircle } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
@@ -54,6 +55,31 @@ const ProductDetail = () => {
 
   return (
     <Layout>
+      <SEO 
+        title="Buy Swarnprashan Ayurvedic Drops Online | TriSutra Ayurveda"
+        description="Boost your child's immunity and intellect with authentic TriSutra Swarnprashan Drops. Prepared traditionally using Ayurvedic wisdom."
+        type="product"
+        image="https://tri-sutra.com/swarnprashan-product.jpg"
+        schema={{
+          "@context": "https://schema.org/",
+          "@type": "Product",
+          "name": "Swarnprashan Drops",
+          "image": "https://tri-sutra.com/swarnprashan-product.jpg",
+          "description": "An ancient Ayurvedic immunization practice designed to enhance immunity, intellect, and overall growth in children from birth to 16 years.",
+          "brand": {
+            "@type": "Brand",
+            "name": "TriSutra Ayurveda"
+          },
+          "offers": {
+            "@type": "Offer",
+            "url": "https://tri-sutra.com/product/swarnprashan",
+            "priceCurrency": "INR",
+            "price": "999",
+            "availability": "https://schema.org/InStock",
+            "itemCondition": "https://schema.org/NewCondition"
+          }
+        }}
+      />
       {/* Product Hero */}
       <section className="section-padding">
         <div className="container-custom grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
+import SEO from "@/components/SEO";
 import { motion, type Variants } from "framer-motion";
 
 const fadeUp: Variants = {
@@ -31,6 +32,11 @@ const categories = ["All", "Child Health", "Immunity", "Traditions", "Lifestyle"
 const Blog = () => {
   return (
     <Layout>
+      <SEO 
+        title="Ayurvedic Health Blog | TriSutra Ayurveda"
+        description="Insights, tips, and traditional wisdom on Ayurvedic health, child wellness, and Swarnprashan from our expert Vaidyas."
+        type="website"
+      />
       <section className="section-padding gradient-earth">
         <motion.div
           className="container-custom text-center max-w-3xl mx-auto"

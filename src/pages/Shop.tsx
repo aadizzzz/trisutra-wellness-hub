@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { motion, type Variants } from "framer-motion";
 import productImage from "@/assets/swarnprashan-product.jpg";
@@ -32,6 +33,11 @@ const Shop = () => {
 
   return (
     <Layout>
+      <SEO 
+        title="Shop Authentic Ayurvedic Health Products | TriSutra Ayurveda"
+        description="Browse our collection of authentic Ayurvedic health solutions including Swarnprashan for your family's overall wellness."
+        type="website"
+      />
       <section className="section-padding gradient-earth">
         <motion.div
           className="container-custom text-center max-w-3xl mx-auto"

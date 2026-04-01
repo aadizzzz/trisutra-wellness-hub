@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Shield, Heart, Sparkles, Star, Leaf, Droplets } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
@@ -50,6 +51,20 @@ const testimonials = [
 const Index = () => {
   return (
     <Layout>
+      <SEO 
+        title="TriSutra Ayurveda — Authentic Swarnprashan & Wellness"
+        description="Experience the ancient wisdom of TriSutra Ayurveda with our signature Swarnprashan drops for children. Boost immunity and cognitive growth naturally."
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "name": "TriSutra Ayurveda",
+          "description": "Authentic Swarnprashan and traditional Ayurvedic wellness products for children's immunity, growth, and overall health.",
+          "url": "https://tri-sutra.com",
+          "logo": "https://tri-sutra.com/trisutra-logo.png",
+          "image": "https://tri-sutra.com/hero-swarnprashan.jpg",
+          "priceRange": "$$"
+        }}
+      />
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">

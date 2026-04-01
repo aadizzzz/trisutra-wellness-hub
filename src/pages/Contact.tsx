@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +24,11 @@ const slideInRight: Variants = {
 const Contact = () => {
   return (
     <Layout>
+      <SEO 
+        title="Contact TriSutra Ayurveda | We're Here to Help"
+        description="Reach out to TriSutra Ayurveda for questions about Swarnprashan, Ayurvedic consultations, and wellness products."
+        type="website"
+      />
       <section className="section-padding gradient-earth">
         <motion.div
           className="container-custom text-center max-w-3xl mx-auto"

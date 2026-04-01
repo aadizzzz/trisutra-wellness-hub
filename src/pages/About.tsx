@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import SEO from "@/components/SEO";
 import { motion, type Variants } from "framer-motion";
 import vaidyaImage from "@/assets/vaidya-portrait.jpg";
 import mandalaPattern from "@/assets/mandala-pattern.png";
@@ -31,6 +32,11 @@ const slideInRight: Variants = {
 const About = () => {
   return (
     <Layout>
+      <SEO 
+        title="About TriSutra Ayurveda - Our Story and Philosophy"
+        description="Learn about TriSutra Ayurveda's journey to bring ancient Vedic wisdom and authentic wellness to modern families."
+        type="website"
+      />
       {/* Hero */}
       <section className="section-padding gradient-earth relative overflow-hidden">
         <img src={mandalaPattern} alt="" className="absolute right-0 top-0 w-96 h-96 opacity-10 translate-x-1/4 -translate-y-1/4" loading="lazy" width={800} height={800} />
