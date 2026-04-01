@@ -3,6 +3,8 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { motion, type Variants } from "framer-motion";
 import productImage from "@/assets/swarnprashan-product.jpg";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 40 },
@@ -26,6 +28,8 @@ const products = [
 ];
 
 const Shop = () => {
+  const { addItem } = useCart();
+
   return (
     <Layout>
       <section className="section-padding gradient-earth">
@@ -65,9 +69,20 @@ const Shop = () => {
                     <span className="font-heading text-xl font-bold text-foreground">₹{p.price}</span>
                     <span className="font-body text-sm text-muted-foreground line-through">₹{p.originalPrice}</span>
                   </div>
-                  <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-body">
-                    <Link to={`/product/${p.id}`}>View Product</Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      className="flex-1 bg-gold text-gold-foreground hover:bg-gold/90 font-body"
+                      onClick={() => {
+                        addItem({ id: p.name.toLowerCase().replace(/\s+/g, '-'), name: p.name, price: p.price, image: p.image });
+                        toast.success(`${p.name} added to cart!`);
+                      }}
+                    >
+                      Add to Cart
+                    </Button>
+                    <Button asChild variant="outline" className="flex-1 font-body">
+                      <Link to={`/product/${p.id}`}>View</Link>
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             ))}

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Shield, Brain, Zap, Baby, Calendar, CheckCircle } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
 import productImage from "@/assets/swarnprashan-product.jpg";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 40 },
@@ -48,6 +50,8 @@ const usageSteps = [
 ];
 
 const ProductDetail = () => {
+  const { addItem } = useCart();
+
   return (
     <Layout>
       {/* Product Hero */}
@@ -76,7 +80,14 @@ const ProductDetail = () => {
               <span className="font-body text-xs bg-accent text-accent-foreground px-2 py-1 rounded">Save 23%</span>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              <Button size="lg" className="bg-gold text-gold-foreground hover:bg-gold/90 font-body font-semibold px-10">
+              <Button 
+                size="lg" 
+                className="bg-gold text-gold-foreground hover:bg-gold/90 font-body font-semibold px-10"
+                onClick={() => {
+                  addItem({ id: "swarnprashan", name: "Swarnprashan Drops", price: 999, image: productImage });
+                  toast.success("Swarnprashan Drops added to cart!");
+                }}
+              >
                 Add to Cart
               </Button>
               <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-body px-10">

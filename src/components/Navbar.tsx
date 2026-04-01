@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import logo from "@/assets/trisutra-logo.png";
+import { CartSheet } from "./CartSheet";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -19,12 +20,12 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="container-custom flex items-center justify-between h-20 sm:h-24 px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 flex-1">
           <img src={logo} alt="TriSutra Ayurveda" className="h-20 sm:h-24 w-auto" />
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center justify-center gap-8 flex-auto">
           {navLinks.map((link) => (
             <Link
               key={link.to}
@@ -36,6 +37,15 @@ const Navbar = () => {
               {link.label}
             </Link>
           ))}
+        </div>
+
+        {/* Action Icons */}
+        <div className="hidden md:flex items-center justify-end gap-4 flex-1">
+          <CartSheet />
+          <Link to="/login" className="text-muted-foreground hover:text-primary transition-colors">
+            <User className="h-5 w-5" />
+            <span className="sr-only">Account</span>
+          </Link>
         </div>
 
         {/* Mobile Toggle */}
@@ -64,6 +74,13 @@ const Navbar = () => {
                 {link.label}
               </Link>
             ))}
+            <div className="flex gap-4 pt-4 border-t mt-4 border-border/50">
+              <CartSheet />
+              <Link to="/login" className="flex items-center gap-2 font-body text-sm font-medium text-muted-foreground hover:text-primary" onClick={() => setIsOpen(false)}>
+                <User className="h-5 w-5" />
+                Account
+              </Link>
+            </div>
           </div>
         </div>
       )}

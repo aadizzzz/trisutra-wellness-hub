@@ -7,7 +7,7 @@ const Footer = () => {
       <div className="container-custom section-padding">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-1">
-            <img src={logo} alt="TriSutra Ayurveda" className="h-20 w-auto mb-4 brightness-200" />
+            <img src={logo} alt="TriSutra Ayurveda" className="h-20 sm:h-24 w-auto mb-4 brightness-200" />
             <p className="font-body text-sm opacity-80 leading-relaxed">
               Ancient wisdom, modern wellness. TriSutra brings you authentic Ayurvedic solutions rooted in centuries of tradition.
             </p>
