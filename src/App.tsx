@@ -25,7 +25,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <CartProvider>
-        <HashRouter basename={import.meta.env.BASE_URL}>
+        <HashRouter>
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<Index />} />
