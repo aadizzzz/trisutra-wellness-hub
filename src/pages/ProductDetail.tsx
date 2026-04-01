@@ -2,7 +2,33 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Shield, Brain, Zap, Baby, Calendar, CheckCircle } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
 import productImage from "@/assets/swarnprashan-product.jpg";
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } },
+};
+
+const staggerContainer: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
+
+const fadeUpChild: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } },
+};
+
+const slideInLeft: Variants = {
+  hidden: { opacity: 0, x: -60 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } },
+};
+
+const slideInRight: Variants = {
+  hidden: { opacity: 0, x: 60 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } },
+};
 
 const ingredients = [
   "Swarna Bhasma (Gold Ash)",
@@ -27,10 +53,18 @@ const ProductDetail = () => {
       {/* Product Hero */}
       <section className="section-padding">
         <div className="container-custom grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={slideInLeft}
+          >
             <img src={productImage} alt="Swarnprashan Drops" className="rounded-lg shadow-2xl w-full max-w-lg mx-auto" width={800} height={800} />
-          </div>
-          <div>
+          </motion.div>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={slideInRight}
+          >
             <p className="font-body text-sm tracking-[0.2em] uppercase text-secondary mb-2">TriSutra Ayurveda</p>
             <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">Swarnprashan Drops</h1>
             <p className="font-body text-muted-foreground leading-relaxed mb-6">
@@ -50,35 +84,54 @@ const ProductDetail = () => {
               </Button>
             </div>
             <p className="font-body text-xs text-muted-foreground">Free shipping on orders above ₹500 • Administered on Pushya Nakshatra</p>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Benefits Grid */}
       <section className="section-padding gradient-earth">
         <div className="container-custom">
-          <h2 className="font-heading text-3xl font-bold text-foreground text-center mb-12">Key Benefits</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <motion.h2
+            className="font-heading text-3xl font-bold text-foreground text-center mb-12"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeUp}
+          >
+            Key Benefits
+          </motion.h2>
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.1 }}
+            variants={staggerContainer}
+          >
             {[
               { icon: Shield, title: "Immunity", desc: "Builds a robust immune system naturally" },
               { icon: Brain, title: "Intellect", desc: "Sharpens memory and cognitive function" },
               { icon: Zap, title: "Digestion", desc: "Improves digestive fire (Agni)" },
               { icon: Baby, title: "Growth", desc: "Supports overall physical development" },
             ].map((b, i) => (
-              <div key={i} className="bg-card rounded-lg p-6 text-center border border-border">
+              <motion.div key={i} variants={fadeUpChild} className="bg-card rounded-lg p-6 text-center border border-border">
                 <b.icon className="w-8 h-8 text-accent mx-auto mb-3" />
                 <h3 className="font-heading text-lg font-semibold text-foreground mb-2">{b.title}</h3>
                 <p className="font-body text-sm text-muted-foreground">{b.desc}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Ingredients & Usage */}
       <section className="section-padding">
         <div className="container-custom grid grid-cols-1 lg:grid-cols-2 gap-16">
-          <div>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={slideInLeft}
+          >
             <h2 className="font-heading text-3xl font-bold text-foreground mb-8">Ingredients</h2>
             <ul className="space-y-4">
               {ingredients.map((ing, i) => (
@@ -88,8 +141,13 @@ const ProductDetail = () => {
                 </li>
               ))}
             </ul>
-          </div>
-          <div>
+          </motion.div>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={slideInRight}
+          >
             <h2 className="font-heading text-3xl font-bold text-foreground mb-8">How to Use</h2>
             <ul className="space-y-4">
               {usageSteps.map((step, i) => (
@@ -99,12 +157,18 @@ const ProductDetail = () => {
                 </li>
               ))}
             </ul>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="section-padding bg-primary text-primary-foreground text-center">
+      <motion.section
+        className="section-padding bg-primary text-primary-foreground text-center"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.3 }}
+        variants={fadeUp}
+      >
         <div className="container-custom">
           <h2 className="font-heading text-3xl sm:text-4xl font-bold mb-4">Start Your Child's Golden Immunity Today</h2>
           <p className="font-body opacity-80 mb-8 max-w-xl mx-auto">Subscribe for monthly Swarnprashan and never miss a Pushya Nakshatra day.</p>
@@ -112,7 +176,7 @@ const ProductDetail = () => {
             Subscribe Now — ₹899/month
           </Button>
         </div>
-      </section>
+      </motion.section>
     </Layout>
   );
 };

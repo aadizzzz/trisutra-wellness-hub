@@ -1,7 +1,23 @@
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import { motion, type Variants } from "framer-motion";
 import productImage from "@/assets/swarnprashan-product.jpg";
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } },
+};
+
+const staggerContainer: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
+
+const fadeUpChild: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } },
+};
 
 const products = [
   { id: "swarnprashan", name: "Swarnprashan Drops", price: 999, originalPrice: 1299, image: productImage, category: "Immunity", badge: "Bestseller" },
@@ -13,18 +29,29 @@ const Shop = () => {
   return (
     <Layout>
       <section className="section-padding gradient-earth">
-        <div className="container-custom text-center max-w-3xl mx-auto">
+        <motion.div
+          className="container-custom text-center max-w-3xl mx-auto"
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+        >
           <p className="font-body text-sm tracking-[0.2em] uppercase text-secondary mb-3">Our Collection</p>
           <h1 className="font-heading text-4xl sm:text-5xl font-bold text-foreground mb-4">Shop Ayurvedic Wellness</h1>
           <p className="font-body text-muted-foreground text-lg">Authentic, traditional formulations for your family's health.</p>
-        </div>
+        </motion.div>
       </section>
 
       <section className="section-padding">
         <div className="container-custom">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.1 }}
+            variants={staggerContainer}
+          >
             {products.map((p, i) => (
-              <div key={i} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow duration-300 group">
+              <motion.div key={i} variants={fadeUpChild} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow duration-300 group">
                 <div className="relative overflow-hidden">
                   <img src={p.image} alt={p.name} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" width={800} height={800} />
                   {p.badge && (
@@ -42,17 +69,23 @@ const Shop = () => {
                     <Link to={`/product/${p.id}`}>View Product</Link>
                   </Button>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
-          <div className="mt-20 text-center bg-muted rounded-lg p-12">
+          <motion.div
+            className="mt-20 text-center bg-muted rounded-lg p-12"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeUp}
+          >
             <h3 className="font-heading text-2xl font-bold text-foreground mb-3">More Products Coming Soon</h3>
             <p className="font-body text-muted-foreground mb-6">We're working on expanding our collection with more authentic Ayurvedic formulations.</p>
             <Button asChild variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-body">
               <Link to="/contact">Get Notified</Link>
             </Button>
-          </div>
+          </motion.div>
         </div>
       </section>
     </Layout>
