@@ -3,22 +3,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Phone, Mail, MessageCircle } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
+
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } },
+};
+
+const slideInLeft: Variants = {
+  hidden: { opacity: 0, x: -60 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } },
+};
+
+const slideInRight: Variants = {
+  hidden: { opacity: 0, x: 60 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.25, 0.1, 0.25, 1] } },
+};
 
 const Contact = () => {
   return (
     <Layout>
       <section className="section-padding gradient-earth">
-        <div className="container-custom text-center max-w-3xl mx-auto">
+        <motion.div
+          className="container-custom text-center max-w-3xl mx-auto"
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+        >
           <p className="font-body text-sm tracking-[0.2em] uppercase text-secondary mb-3">Get in Touch</p>
           <h1 className="font-heading text-4xl sm:text-5xl font-bold text-foreground mb-4">Contact Us</h1>
           <p className="font-body text-muted-foreground text-lg">Have questions about Swarnprashan or our products? We're here to help.</p>
-        </div>
+        </motion.div>
       </section>
 
       <section className="section-padding">
         <div className="container-custom grid grid-cols-1 lg:grid-cols-2 gap-16">
           {/* Contact Form */}
-          <div>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={slideInLeft}
+          >
             <h2 className="font-heading text-2xl font-bold text-foreground mb-6">Send a Message</h2>
             <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -31,10 +57,15 @@ const Contact = () => {
                 Send Message
               </Button>
             </form>
-          </div>
+          </motion.div>
 
           {/* Contact Info */}
-          <div>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={slideInRight}
+          >
             <h2 className="font-heading text-2xl font-bold text-foreground mb-6">Reach Us Directly</h2>
             <div className="space-y-6">
               {[
@@ -65,7 +96,7 @@ const Contact = () => {
                 Chat on WhatsApp
               </a>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
     </Layout>
