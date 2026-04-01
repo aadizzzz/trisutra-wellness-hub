@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Shield, Heart, Sparkles, Star, Leaf, Droplets } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import heroImage from "@/assets/hero-swarnprashan.jpg";
 import productImage from "@/assets/swarnprashan-product.jpg";
 import mandalaPattern from "@/assets/mandala-pattern.png";
