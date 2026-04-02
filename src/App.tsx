@@ -22,20 +22,25 @@ import Login from "./pages/Login";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
-import { useAuth } from "./contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 
 const AuthWatcher = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If we have an access token in the hash, wait for Supabase to process it,
-    // then redirect the user to the account page to clean up the URL.
-    if (window.location.hash.includes("access_token=") && user) {
-      navigate("/account", { replace: true });
-    }
-  }, [user, navigate]);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // If we land on the site with an OAuth hash, redirect to clean it up
+      if (
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION") && 
+        window.location.hash.includes("access_token=")
+      ) {
+        navigate("/account", { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   return null;
 };
