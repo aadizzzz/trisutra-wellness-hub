@@ -126,8 +126,7 @@ export default function Account() {
 
   const generatePDF = async (order: OrderRow) => {
     if (!invoiceRef.current) {
-        console.error("Invoice ref not found");
-        return;
+        throw new Error("Invoice template reference not found");
     }
 
     try {
