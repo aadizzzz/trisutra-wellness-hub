@@ -10,19 +10,39 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Download, Loader2 } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { useRef } from "react";
+
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
 
 interface OrderRow {
   id: string;
   order_number: string;
   created_at: string;
   total: number;
+  subtotal: number;
+  shipping: number;
   status: string;
+  customer_name: string;
+  customer_email: string;
+  shipping_address: string;
+  payment_method: string;
+  items?: OrderItem[];
 }
 
 export default function Account() {
   const [activeTab, setActiveTab] = useState("profile");
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [editing, setEditing] = useState(false);
+  const [isDownloadingId, setIsDownloadingId] = useState<string | null>(null);
+  const invoiceRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({ full_name: "", phone: "", address: "", city: "", state: "", pincode: "" });
   const navigate = useNavigate();
   const { user, profile, loading, signOut, updateProfile } = useAuth();
@@ -50,11 +70,11 @@ export default function Account() {
     if (user) {
       supabase
         .from("orders")
-        .select("id, order_number, created_at, total, status")
+        .select("id, order_number, created_at, total, subtotal, shipping, status, customer_name, customer_email, shipping_address, payment_method")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .then(({ data }) => {
-          if (data) setOrders(data);
+          if (data) setOrders(data as OrderRow[]);
         });
     }
   }, [user]);
@@ -74,6 +94,65 @@ export default function Account() {
       setEditing(false);
     }
   };
+
+  const handleDownloadInvoice = async (order: OrderRow) => {
+    setIsDownloadingId(order.id);
+    try {
+      // First fetch items for this order
+      const { data: items, error } = await supabase
+        .from("order_items")
+        .select("id, name, price, quantity")
+        .eq("order_id", order.id);
+
+      if (error) throw error;
+      
+      const orderWithItems = { ...order, items: items || [] };
+      
+      // We need a small delay to ensure the DOM is updated if we used state,
+      // but here we'll just pass the data to a generator function or use a hidden ref.
+      // For simplicity in this one-file approach, we'll store the "current" invoice data
+      // temporarily in a way the ref can see it, or just use the existing logic.
+      
+      await generatePDF(orderWithItems);
+      toast.success("Invoice downloaded successfully");
+    } catch (error) {
+      console.error("Error downloading invoice:", error);
+      toast.error("Failed to generate invoice");
+    } finally {
+      setIsDownloadingId(null);
+    }
+  };
+
+  const generatePDF = async (order: OrderRow) => {
+    if (!invoiceRef.current) return;
+    
+    // The hidden template will be populated by React based on a "currentInvoice" state
+    // But since we want to be fast, we'll manually set contents or use a temporary state.
+    // Let's use a temporary state for the "active" invoice being printed.
+    setCurrentInvoice(order);
+    
+    // Wait for thermal/render
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    try {
+      invoiceRef.current.classList.remove("hidden");
+      const canvas = await html2canvas(invoiceRef.current, { scale: 2 });
+      invoiceRef.current.classList.add("hidden");
+      
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Invoice_${order.order_number}.pdf`);
+    } catch (error) {
+      console.error("PDF Generation error:", error);
+      invoiceRef.current.classList.add("hidden");
+    }
+  };
+
+  const [currentInvoice, setCurrentInvoice] = useState<OrderRow | null>(null);
 
   if (loading) {
     return (
@@ -201,17 +280,18 @@ export default function Account() {
 
                 <TabsContent value="orders" className="pt-6">
                   <div className="bg-card border rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-4 gap-4 p-4 bg-muted/50 font-medium text-sm">
+                    <div className="grid grid-cols-5 gap-4 p-4 bg-muted/50 font-medium text-sm">
                       <div>Order ID</div>
                       <div>Date</div>
                       <div>Status</div>
-                      <div className="text-right">Total</div>
+                      <div>Total</div>
+                      <div className="text-right">Action</div>
                     </div>
                     {orders.length === 0 ? (
                       <div className="p-8 text-center text-muted-foreground">No orders yet.</div>
                     ) : (
                       orders.map((order) => (
-                        <div key={order.id} className="grid grid-cols-4 gap-4 p-4 border-t items-center text-sm">
+                        <div key={order.id} className="grid grid-cols-5 gap-4 p-4 border-t items-center text-sm">
                           <div className="font-medium text-primary">{order.order_number}</div>
                           <div className="text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</div>
                           <div>
@@ -224,7 +304,23 @@ export default function Account() {
                               {order.status}
                             </span>
                           </div>
-                          <div className="text-right font-semibold">₹{Number(order.total).toFixed(2)}</div>
+                          <div className="font-semibold">₹{Number(order.total).toFixed(2)}</div>
+                          <div className="text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0" 
+                              onClick={() => handleDownloadInvoice(order)}
+                              disabled={isDownloadingId === order.id}
+                            >
+                              {isDownloadingId === order.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">Download Invoice</span>
+                            </Button>
+                          </div>
                         </div>
                       ))
                     )}
@@ -243,6 +339,83 @@ export default function Account() {
         </div>
       </main>
       <Footer />
+
+      {/* Hidden Invoice Template for PDF Generation */}
+      <div className="absolute top-0 left-[-9999px]">
+        {currentInvoice && (
+          <div ref={invoiceRef} className="hidden w-[800px] bg-white text-black p-10 font-body">
+            <div className="flex justify-between items-start mb-12 border-b pb-8">
+              <div>
+                <h1 className="text-4xl font-bold text-primary mb-2">INVOICE</h1>
+                <p className="text-gray-500">Order ID: {currentInvoice.order_number}</p>
+                <p className="text-gray-500">Date: {new Date(currentInvoice.created_at).toLocaleDateString()}</p>
+              </div>
+              <div className="text-right">
+                <h2 className="text-xl font-bold text-primary">TriSutra Ayurveda</h2>
+                <p className="text-sm text-gray-500">Ancient wisdom, modern wellness</p>
+                <p className="text-sm text-gray-500 mt-2">info@trisutra.in</p>
+                <p className="text-sm text-gray-500">+91 98765 43210</p>
+              </div>
+            </div>
+
+            <div className="flex justify-between mb-12">
+              <div>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Billed To</h3>
+                <p className="font-medium">{currentInvoice.customer_name}</p>
+                <p className="text-sm text-gray-600">{currentInvoice.customer_email}</p>
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Shipped To</h3>
+                <p className="text-sm text-gray-600 max-w-[300px] whitespace-pre-wrap mb-4">{currentInvoice.shipping_address}</p>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Payment Method</h3>
+                <p className="text-sm font-bold text-primary italic uppercase tracking-wider">{currentInvoice.payment_method}</p>
+              </div>
+            </div>
+
+            <table className="w-full text-left mb-12">
+              <thead>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="py-3 text-sm font-bold text-gray-400 uppercase tracking-wider">Item</th>
+                  <th className="py-3 text-center text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Qty</th>
+                  <th className="py-3 text-right text-sm font-bold text-gray-400 uppercase tracking-wider w-32">Price</th>
+                  <th className="py-3 text-right text-sm font-bold text-gray-400 uppercase tracking-wider w-32">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentInvoice.items?.map((item: any) => (
+                  <tr key={item.id} className="border-b border-gray-100">
+                    <td className="py-4 font-medium">{item.name}</td>
+                    <td className="py-4 text-center text-gray-600">{item.quantity}</td>
+                    <td className="py-4 text-right text-gray-600">₹{Number(item.price).toFixed(2)}</td>
+                    <td className="py-4 text-right font-medium">₹{(Number(item.price) * item.quantity).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="flex justify-end">
+              <div className="w-64 space-y-3 pt-4">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal</span>
+                  <span>₹{Number(currentInvoice.subtotal).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-gray-600">
+                  <span>Shipping</span>
+                  <span>₹{Number(currentInvoice.shipping).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xl font-bold border-t pt-3 border-gray-200">
+                  <span>Total</span>
+                  <span className="text-primary">₹{Number(currentInvoice.total).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-16 text-center text-sm text-gray-400 border-t pt-8">
+              <p>Thank you for shopping with TriSutra Ayurveda.</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
