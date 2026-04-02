@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/trisutra-logo.png";
 
 type AuthMode = "login" | "signup";
@@ -46,29 +46,31 @@ export default function Login() {
   };
 
   const handleGoogleSignIn = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/account",
+      },
     });
-    if (result.error) {
-      toast.error("Google sign-in failed. Please try again.");
+
+    if (error) {
+      toast.error("Google sign-in failed: " + error.message);
       return;
     }
-    if (result.redirected) return;
-    toast.success("Welcome!");
-    navigate("/account");
   };
 
   const handleAppleSignIn = async () => {
-    const result = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: {
+        redirectTo: window.location.origin + "/account",
+      },
     });
-    if (result.error) {
-      toast.error("Apple sign-in failed. Please try again.");
+
+    if (error) {
+      toast.error("Apple sign-in failed: " + error.message);
       return;
     }
-    if (result.redirected) return;
-    toast.success("Welcome!");
-    navigate("/account");
   };
 
   return (
