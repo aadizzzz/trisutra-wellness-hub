@@ -108,10 +108,11 @@ export default function Account() {
       
       const orderWithItems = { ...order, items: items || [] };
       
-      // We need a small delay to ensure the DOM is updated if we used state,
-      // but here we'll just pass the data to a generator function or use a hidden ref.
-      // For simplicity in this one-file approach, we'll store the "current" invoice data
-      // temporarily in a way the ref can see it, or just use the existing logic.
+      // Update state and wait for render
+      setCurrentInvoice(orderWithItems);
+      
+      // Delay to allow React to render the invoice content into the off-screen div
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       await generatePDF(orderWithItems);
       toast.success("Invoice downloaded successfully");
@@ -124,20 +125,23 @@ export default function Account() {
   };
 
   const generatePDF = async (order: OrderRow) => {
-    if (!invoiceRef.current) return;
-    
-    // The hidden template will be populated by React based on a "currentInvoice" state
-    // But since we want to be fast, we'll manually set contents or use a temporary state.
-    // Let's use a temporary state for the "active" invoice being printed.
-    setCurrentInvoice(order);
-    
-    // Wait for thermal/render
-    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!invoiceRef.current) {
+        console.error("Invoice ref not found");
+        return;
+    }
 
     try {
-      invoiceRef.current.classList.remove("hidden");
-      const canvas = await html2canvas(invoiceRef.current, { scale: 2 });
-      invoiceRef.current.classList.add("hidden");
+      // Temporarily make it "visible" to html2canvas by removing the hiding classes
+      invoiceRef.current.classList.remove("h-0", "overflow-hidden", "opacity-0");
+      
+      const canvas = await html2canvas(invoiceRef.current, { 
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      
+      // Hide it back immediately
+      invoiceRef.current.classList.add("h-0", "overflow-hidden", "opacity-0");
       
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
@@ -148,7 +152,7 @@ export default function Account() {
       pdf.save(`Invoice_${order.order_number}.pdf`);
     } catch (error) {
       console.error("PDF Generation error:", error);
-      invoiceRef.current.classList.add("hidden");
+      invoiceRef.current?.classList.add("h-0", "overflow-hidden", "opacity-0");
     }
   };
 
@@ -342,79 +346,81 @@ export default function Account() {
 
       {/* Hidden Invoice Template for PDF Generation */}
       <div className="absolute top-0 left-[-9999px]">
-        {currentInvoice && (
-          <div ref={invoiceRef} className="hidden w-[800px] bg-white text-black p-10 font-body">
-            <div className="flex justify-between items-start mb-12 border-b pb-8">
-              <div>
-                <h1 className="text-4xl font-bold text-primary mb-2">INVOICE</h1>
-                <p className="text-gray-500">Order ID: {currentInvoice.order_number}</p>
-                <p className="text-gray-500">Date: {new Date(currentInvoice.created_at).toLocaleDateString()}</p>
+        <div ref={invoiceRef} className="opacity-0 h-0 overflow-hidden w-[800px] bg-white text-black p-10 font-body">
+          {currentInvoice && (
+            <>
+              <div className="flex justify-between items-start mb-12 border-b pb-8">
+                <div>
+                  <h1 className="text-4xl font-bold text-primary mb-2">INVOICE</h1>
+                  <p className="text-gray-500">Order ID: {currentInvoice.order_number}</p>
+                  <p className="text-gray-500">Date: {new Date(currentInvoice.created_at).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-xl font-bold text-primary">TriSutra Ayurveda</h2>
+                  <p className="text-sm text-gray-500">Ancient wisdom, modern wellness</p>
+                  <p className="text-sm text-gray-500 mt-2">info@trisutra.in</p>
+                  <p className="text-sm text-gray-500">+91 98765 43210</p>
+                </div>
               </div>
-              <div className="text-right">
-                <h2 className="text-xl font-bold text-primary">TriSutra Ayurveda</h2>
-                <p className="text-sm text-gray-500">Ancient wisdom, modern wellness</p>
-                <p className="text-sm text-gray-500 mt-2">info@trisutra.in</p>
-                <p className="text-sm text-gray-500">+91 98765 43210</p>
-              </div>
-            </div>
 
-            <div className="flex justify-between mb-12">
-              <div>
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Billed To</h3>
-                <p className="font-medium">{currentInvoice.customer_name}</p>
-                <p className="text-sm text-gray-600">{currentInvoice.customer_email}</p>
+              <div className="flex justify-between mb-12">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Billed To</h3>
+                  <p className="font-medium">{currentInvoice.customer_name}</p>
+                  <p className="text-sm text-gray-600">{currentInvoice.customer_email}</p>
+                </div>
+                <div className="text-right">
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Shipped To</h3>
+                  <p className="text-sm text-gray-600 max-w-[300px] whitespace-pre-wrap mb-4">{currentInvoice.shipping_address}</p>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Payment Method</h3>
+                  <p className="text-sm font-bold text-primary italic uppercase tracking-wider">{currentInvoice.payment_method}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Shipped To</h3>
-                <p className="text-sm text-gray-600 max-w-[300px] whitespace-pre-wrap mb-4">{currentInvoice.shipping_address}</p>
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Payment Method</h3>
-                <p className="text-sm font-bold text-primary italic uppercase tracking-wider">{currentInvoice.payment_method}</p>
-              </div>
-            </div>
 
-            <table className="w-full text-left mb-12">
-              <thead>
-                <tr className="border-b-2 border-gray-200">
-                  <th className="py-3 text-sm font-bold text-gray-400 uppercase tracking-wider">Item</th>
-                  <th className="py-3 text-center text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Qty</th>
-                  <th className="py-3 text-right text-sm font-bold text-gray-400 uppercase tracking-wider w-32">Price</th>
-                  <th className="py-3 text-right text-sm font-bold text-gray-400 uppercase tracking-wider w-32">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentInvoice.items?.map((item: any) => (
-                  <tr key={item.id} className="border-b border-gray-100">
-                    <td className="py-4 font-medium">{item.name}</td>
-                    <td className="py-4 text-center text-gray-600">{item.quantity}</td>
-                    <td className="py-4 text-right text-gray-600">₹{Number(item.price).toFixed(2)}</td>
-                    <td className="py-4 text-right font-medium">₹{(Number(item.price) * item.quantity).toFixed(2)}</td>
+              <table className="w-full text-left mb-12">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="py-3 text-sm font-bold text-gray-400 uppercase tracking-wider">Item</th>
+                    <th className="py-3 text-center text-sm font-bold text-gray-400 uppercase tracking-wider w-24">Qty</th>
+                    <th className="py-3 text-right text-sm font-bold text-gray-400 uppercase tracking-wider w-32">Price</th>
+                    <th className="py-3 text-right text-sm font-bold text-gray-400 uppercase tracking-wider w-32">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {currentInvoice.items?.map((item: any) => (
+                    <tr key={item.id} className="border-b border-gray-100">
+                      <td className="py-4 font-medium">{item.name}</td>
+                      <td className="py-4 text-center text-gray-600">{item.quantity}</td>
+                      <td className="py-4 text-right text-gray-600">₹{Number(item.price).toFixed(2)}</td>
+                      <td className="py-4 text-right font-medium">₹{(Number(item.price) * item.quantity).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-            <div className="flex justify-end">
-              <div className="w-64 space-y-3 pt-4">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>₹{Number(currentInvoice.subtotal).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Shipping</span>
-                  <span>₹{Number(currentInvoice.shipping).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xl font-bold border-t pt-3 border-gray-200">
-                  <span>Total</span>
-                  <span className="text-primary">₹{Number(currentInvoice.total).toFixed(2)}</span>
+              <div className="flex justify-end">
+                <div className="w-64 space-y-3 pt-4">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal</span>
+                    <span>₹{Number(currentInvoice.subtotal).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Shipping</span>
+                    <span>₹{Number(currentInvoice.shipping).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xl font-bold border-t pt-3 border-gray-200">
+                    <span>Total</span>
+                    <span className="text-primary">₹{Number(currentInvoice.total).toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-16 text-center text-sm text-gray-400 border-t pt-8">
-              <p>Thank you for shopping with TriSutra Ayurveda.</p>
-            </div>
-          </div>
-        )}
+              <div className="mt-16 text-center text-sm text-gray-400 border-t pt-8">
+                <p>Thank you for shopping with TriSutra Ayurveda.</p>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
