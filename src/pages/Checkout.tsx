@@ -3,16 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { orderStorage, PaymentMethod } from "@/utils/orderStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Lock } from "lucide-react";
+import { Lock, Wallet, Truck } from "lucide-react";
 
 export default function Checkout() {
   const { items, getCartTotal, clearCart } = useCart();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Online Paid");
 
   // Form states
   const [formData, setFormData] = useState({
@@ -42,23 +45,46 @@ export default function Checkout() {
     
     // Simulate API call for placing order
     setTimeout(() => {
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase().padEnd(5, "X");
+      const orderId = `ORD-${dateStr}-${randomStr}`;
+      const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`;
+      
+      const isSubscriptionOrder = items.some(item => 
+        item.category === "Subscription" || 
+        item.name.toLowerCase().includes("subscription")
+      );
+      
+      const orderDetails: any = {
+        id: orderId,
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        shippingAddress,
+        items: items.map(i => ({ 
+          id: i.id, 
+          name: i.name, 
+          price: i.price, 
+          quantity: i.quantity,
+          category: i.category 
+        })),
+        subtotal,
+        shipping,
+        total,
+        status: "New",
+        paymentMethod,
+        date: new Date().toLocaleDateString(),
+        type: isSubscriptionOrder ? "Subscription" : "Single"
+      };
+
+      // PERSISTING TO MOCK DATABASE (Real-time sync)
+      orderStorage.addOrder(orderDetails);
+
       setIsProcessing(false);
       clearCart();
       
-      // Navigate to success page with minimal state
-      navigate("/order-success", { 
-        state: { 
-          orderDetails: {
-            id: `ORD-${Math.floor(Math.random() * 10000)}`,
-            date: new Date().toLocaleDateString(),
-            items: [...items],
-            total,
-            shippingAddress: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
-            customerName: formData.name,
-            customerEmail: formData.email
-          }
-        } 
-      });
+      // Navigate to success page
+      navigate("/order-success", { state: { orderDetails } });
     }, 1500);
   };
 
@@ -127,6 +153,39 @@ export default function Checkout() {
                   </div>
                 </div>
               </div>
+
+              <div className="bg-card p-6 rounded-lg border">
+                <h2 className="font-heading text-xl font-semibold mb-6">Payment Method</h2>
+                <RadioGroup 
+                  defaultValue="Online Paid" 
+                  value={paymentMethod}
+                  onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  <div className="relative">
+                    <RadioGroupItem value="Online Paid" id="online" className="peer sr-only" />
+                    <Label
+                      htmlFor="online"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all"
+                    >
+                      <Wallet className="mb-3 h-6 w-6 text-primary" />
+                      <span className="font-semibold">Online Paid</span>
+                      <span className="text-[10px] text-muted-foreground mt-1 text-center">Credit Card / UPI / NetBanking</span>
+                    </Label>
+                  </div>
+                  <div className="relative">
+                    <RadioGroupItem value="Cash on Delivery" id="cod" className="peer sr-only" />
+                    <Label
+                      htmlFor="cod"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all"
+                    >
+                      <Truck className="mb-3 h-6 w-6 text-primary" />
+                      <span className="font-semibold">Cash on Delivery</span>
+                      <span className="text-[10px] text-muted-foreground mt-1 text-center">Pay when you receive the order</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
             </div>
 
             {/* Right Column - Order Summary */}
@@ -175,7 +234,7 @@ export default function Checkout() {
                   disabled={isProcessing}
                 >
                   <Lock size={16} />
-                  {isProcessing ? "Processing..." : `Pay ₹${total.toFixed(2)}`}
+                  {isProcessing ? "Processing..." : `Place Order (₹${total.toFixed(2)})`}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground mt-4">
                   Secure Checkout. Your details are safe with us.

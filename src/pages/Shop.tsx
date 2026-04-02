@@ -79,7 +79,13 @@ const Shop = () => {
                     <Button 
                       className="flex-1 bg-gold text-gold-foreground hover:bg-gold/90 font-body"
                       onClick={() => {
-                        addItem({ id: p.name.toLowerCase().replace(/\s+/g, '-'), name: p.name, price: p.price, image: p.image });
+                        addItem({ 
+                          id: p.name.toLowerCase().replace(/\s+/g, '-'), 
+                          name: p.name, 
+                          price: p.price, 
+                          image: p.image,
+                          category: p.category 
+                        });
                         toast.success(`${p.name} added to cart!`);
                       }}
                     >

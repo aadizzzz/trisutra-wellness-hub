@@ -6,6 +6,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   image?: string;
+  category?: string;
 }
 
 interface CartContextType {
@@ -52,6 +53,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: item.name, 
         price: item.price, 
         image: item.image,
+        category: item.category,
         quantity: quantityToAdd 
       }];
     });

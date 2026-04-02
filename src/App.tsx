@@ -18,6 +18,10 @@ import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import Login from "./pages/Login";
 
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -40,6 +44,14 @@ const App = () => (
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/login" element={<Login />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route element={<AdminProtectedRoute />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
+
           <Route path="*" element={<NotFound />} />
         </Routes>
         </BrowserRouter>

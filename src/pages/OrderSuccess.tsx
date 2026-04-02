@@ -100,7 +100,9 @@ export default function OrderSuccess() {
               </div>
               <div className="text-right">
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Shipped To</h3>
-                <p className="text-sm text-gray-600 max-w-[200px] whitespace-pre-wrap">{orderDetails.shippingAddress}</p>
+                <p className="text-sm text-gray-600 max-w-[200px] whitespace-pre-wrap mb-4">{orderDetails.shippingAddress}</p>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Payment Method</h3>
+                <p className="text-sm font-bold text-primary italic uppercase tracking-wider">{orderDetails.paymentMethod}</p>
               </div>
             </div>
 
