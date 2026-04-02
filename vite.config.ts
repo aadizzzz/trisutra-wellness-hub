@@ -3,8 +3,10 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  base: mode === "production" ? "/trisutra-wellness-hub/" : "/",
+export default defineConfig(({ mode }) => {
+  const isVercel = process.env.VERCEL === "1";
+  return {
+    base: isVercel ? "/" : (mode === "production" ? "/trisutra-wellness-hub/" : "/"),
   server: {
     host: "::",
     port: 8080,
@@ -19,4 +21,5 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
-}));
+  };
+});
