@@ -1,35 +1,39 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { orderStorage, PaymentMethod } from "@/utils/orderStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Lock, Wallet, Truck } from "lucide-react";
+import { toast } from "sonner";
+
+type PaymentMethod = "Cash on Delivery" | "Online Paid";
 
 export default function Checkout() {
   const { items, getCartTotal, clearCart } = useCart();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Online Paid");
 
-  // Form states
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
+    name: profile?.full_name || "",
+    email: user?.email || "",
+    phone: profile?.phone || "",
+    address: profile?.address || "",
+    city: profile?.city || "",
+    state: profile?.state || "",
+    pincode: profile?.pincode || "",
   });
 
   const subtotal = getCartTotal();
-  const shipping = subtotal > 0 ? 50 : 0; // Flat shipping rate
+  const shipping = subtotal > 0 ? 50 : 0;
   const total = subtotal + shipping;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -37,55 +41,78 @@ export default function Checkout() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
 
     setIsProcessing(true);
-    
-    // Simulate API call for placing order
-    setTimeout(() => {
+
+    try {
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
       const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase().padEnd(5, "X");
-      const orderId = `ORD-${dateStr}-${randomStr}`;
+      const orderNumber = `ORD-${dateStr}-${randomStr}`;
       const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`;
-      
-      const isSubscriptionOrder = items.some(item => 
-        item.category === "Subscription" || 
-        item.name.toLowerCase().includes("subscription")
+
+      const isSubscription = items.some(item =>
+        item.category === "Subscription" || item.name.toLowerCase().includes("subscription")
       );
-      
-      const orderDetails: any = {
-        id: orderId,
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        shippingAddress,
-        items: items.map(i => ({ 
-          id: i.id, 
-          name: i.name, 
-          price: i.price, 
-          quantity: i.quantity,
-          category: i.category 
-        })),
-        subtotal,
-        shipping,
-        total,
-        status: "New",
-        paymentMethod,
-        date: new Date().toLocaleDateString(),
-        type: isSubscriptionOrder ? "Subscription" : "Single"
-      };
 
-      // PERSISTING TO MOCK DATABASE (Real-time sync)
-      orderStorage.addOrder(orderDetails);
+      // Insert order
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          order_number: orderNumber,
+          user_id: user?.id || null,
+          customer_name: formData.name,
+          customer_email: formData.email,
+          customer_phone: formData.phone,
+          shipping_address: shippingAddress,
+          subtotal,
+          shipping,
+          total,
+          status: "New",
+          payment_method: paymentMethod,
+          order_type: isSubscription ? "Subscription" : "Single",
+        })
+        .select("id")
+        .single();
 
-      setIsProcessing(false);
+      if (orderError) throw orderError;
+
+      // Insert order items
+      const orderItems = items.map(i => ({
+        order_id: order.id,
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
       clearCart();
-      
-      // Navigate to success page
-      navigate("/order-success", { state: { orderDetails } });
-    }, 1500);
+      navigate("/order-success", {
+        state: {
+          orderDetails: {
+            id: orderNumber,
+            customerName: formData.name,
+            customerEmail: formData.email,
+            shippingAddress,
+            items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+            total,
+            paymentMethod,
+            date: new Date().toLocaleDateString(),
+          },
+        },
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to place order. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -104,13 +131,10 @@ export default function Checkout() {
   return (
     <div className="min-h-screen flex flex-col pt-20">
       <Navbar />
-      
       <main className="flex-1 container-custom bg-muted/20">
         <div className="max-w-6xl mx-auto py-8">
           <h1 className="font-heading text-3xl font-bold mb-8">Checkout</h1>
-          
           <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left Column - Form fields */}
             <div className="lg:col-span-7 space-y-6">
               <div className="bg-card p-6 rounded-lg border">
                 <h2 className="font-heading text-xl font-semibold mb-6">Contact Information</h2>
@@ -129,7 +153,6 @@ export default function Checkout() {
                   </div>
                 </div>
               </div>
-
               <div className="bg-card p-6 rounded-lg border">
                 <h2 className="font-heading text-xl font-semibold mb-6">Shipping Address</h2>
                 <div className="grid grid-cols-1 gap-4">
@@ -153,21 +176,12 @@ export default function Checkout() {
                   </div>
                 </div>
               </div>
-
               <div className="bg-card p-6 rounded-lg border">
                 <h2 className="font-heading text-xl font-semibold mb-6">Payment Method</h2>
-                <RadioGroup 
-                  defaultValue="Online Paid" 
-                  value={paymentMethod}
-                  onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                >
+                <RadioGroup defaultValue="Online Paid" value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="relative">
                     <RadioGroupItem value="Online Paid" id="online" className="peer sr-only" />
-                    <Label
-                      htmlFor="online"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all"
-                    >
+                    <Label htmlFor="online" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all">
                       <Wallet className="mb-3 h-6 w-6 text-primary" />
                       <span className="font-semibold">Online Paid</span>
                       <span className="text-[10px] text-muted-foreground mt-1 text-center">Credit Card / UPI / NetBanking</span>
@@ -175,10 +189,7 @@ export default function Checkout() {
                   </div>
                   <div className="relative">
                     <RadioGroupItem value="Cash on Delivery" id="cod" className="peer sr-only" />
-                    <Label
-                      htmlFor="cod"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all"
-                    >
+                    <Label htmlFor="cod" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all">
                       <Truck className="mb-3 h-6 w-6 text-primary" />
                       <span className="font-semibold">Cash on Delivery</span>
                       <span className="text-[10px] text-muted-foreground mt-1 text-center">Pay when you receive the order</span>
@@ -187,21 +198,16 @@ export default function Checkout() {
                 </RadioGroup>
               </div>
             </div>
-
-            {/* Right Column - Order Summary */}
             <div className="lg:col-span-5">
               <div className="bg-card p-6 rounded-lg border sticky top-24">
                 <h2 className="font-heading text-xl font-semibold mb-6">Order Summary</h2>
-                
                 <div className="space-y-4 mb-6">
                   {items.map((item) => (
                     <div key={item.id} className="flex gap-4">
                       {item.image && (
                         <div className="relative">
                           <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-md border" />
-                          <span className="absolute -top-2 -right-2 bg-muted text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border z-10">
-                            {item.quantity}
-                          </span>
+                          <span className="absolute -top-2 -right-2 bg-muted text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border z-10">{item.quantity}</span>
                         </div>
                       )}
                       <div className="flex-1">
@@ -211,7 +217,6 @@ export default function Checkout() {
                     </div>
                   ))}
                 </div>
-
                 <div className="border-t pt-4 space-y-3 text-sm">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal</span>
@@ -226,25 +231,16 @@ export default function Checkout() {
                     <span className="text-primary">₹{total.toFixed(2)}</span>
                   </div>
                 </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full mt-6 flex items-center gap-2" 
-                  size="lg" 
-                  disabled={isProcessing}
-                >
+                <Button type="submit" className="w-full mt-6 flex items-center gap-2" size="lg" disabled={isProcessing}>
                   <Lock size={16} />
                   {isProcessing ? "Processing..." : `Place Order (₹${total.toFixed(2)})`}
                 </Button>
-                <p className="text-xs text-center text-muted-foreground mt-4">
-                  Secure Checkout. Your details are safe with us.
-                </p>
+                <p className="text-xs text-center text-muted-foreground mt-4">Secure Checkout. Your details are safe with us.</p>
               </div>
             </div>
           </form>
         </div>
       </main>
-      
       <Footer />
     </div>
   );

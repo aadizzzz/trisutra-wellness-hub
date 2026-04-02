@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, User } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
 import logo from "@/assets/trisutra-logo.png";
 import { CartSheet } from "./CartSheet";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -16,6 +17,7 @@ const navLinks = [
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
@@ -24,7 +26,6 @@ const Navbar = () => {
           <img src={logo} alt="TriSutra Ayurveda" className="h-20 sm:h-24 w-auto" />
         </Link>
 
-        {/* Desktop Nav */}
         <div className="hidden md:flex items-center justify-center gap-8 flex-auto">
           {navLinks.map((link) => (
             <Link
@@ -39,16 +40,14 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Action Icons */}
         <div className="hidden md:flex items-center justify-end gap-4 flex-1">
           <CartSheet />
-          <Link to="/login" className="text-muted-foreground hover:text-primary transition-colors">
+          <Link to={user ? "/account" : "/login"} className="text-muted-foreground hover:text-primary transition-colors">
             <User className="h-5 w-5" />
-            <span className="sr-only">Account</span>
+            <span className="sr-only">{user ? "Account" : "Login"}</span>
           </Link>
         </div>
 
-        {/* Mobile Toggle */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="md:hidden text-foreground"
@@ -58,7 +57,6 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-background border-b border-border animate-fade-in">
           <div className="px-4 py-4 space-y-3">
@@ -76,9 +74,9 @@ const Navbar = () => {
             ))}
             <div className="flex gap-4 pt-4 border-t mt-4 border-border/50">
               <CartSheet />
-              <Link to="/login" className="flex items-center gap-2 font-body text-sm font-medium text-muted-foreground hover:text-primary" onClick={() => setIsOpen(false)}>
+              <Link to={user ? "/account" : "/login"} className="flex items-center gap-2 font-body text-sm font-medium text-muted-foreground hover:text-primary" onClick={() => setIsOpen(false)}>
                 <User className="h-5 w-5" />
-                Account
+                {user ? "Account" : "Login"}
               </Link>
             </div>
           </div>
