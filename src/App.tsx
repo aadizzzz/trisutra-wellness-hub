@@ -22,29 +22,6 @@ import Login from "./pages/Login";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
-
-const AuthWatcher = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // If we land on the site with an OAuth hash, redirect to clean it up
-      if (
-        (event === "SIGNED_IN" || event === "INITIAL_SESSION") && 
-        window.location.hash.includes("access_token=")
-      ) {
-        navigate("/account", { replace: true });
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  return null;
-};
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -55,7 +32,6 @@ const App = () => (
         <Sonner />
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <AuthProvider>
-            <AuthWatcher />
             <CartProvider>
               <ScrollToTop />
               <Routes>

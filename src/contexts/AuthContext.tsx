@@ -55,9 +55,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // IMMEDIATE REDIRECT for OAuth Hash cleanup
+        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && window.location.hash.includes("access_token=")) {
+          window.location.href = window.location.origin + "/account";
+          return;
+        }
+
         if (session?.user) {
           // Use setTimeout to avoid Supabase deadlock
           setTimeout(() => {
