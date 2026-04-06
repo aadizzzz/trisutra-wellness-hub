@@ -83,7 +83,7 @@ serve(async (req: Request) => {
           <p style='font-size: 20px; font-weight: bold; margin: 10px 0; color: #5d4037;'>${estDelivery}</p>
         </div>
 
-        <p>You can view your order details and track progress in your <a href='https://trisutra-wellness.vercel.app/account' style='color: #8d6e63; text-decoration: underline;'>Account Dashboard</a>.</p>
+        <p>You can view your order details and track progress in your <a href='https://trisutra.online/account' style='color: #8d6e63; text-decoration: underline;'>Account Dashboard</a>.</p>
         
         <p style='margin-top: 30px;'>Thank you for choosing a natural path to wellness.</p>
         <p>Warm regards,<br>The TriSutra Team</p>

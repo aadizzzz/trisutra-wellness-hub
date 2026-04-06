@@ -33,10 +33,10 @@ serve(async (req: Request) => {
 
     if (!authHeader) {
       console.error("Verification failed: Missing Authorization header");
-      return new Response(JSON.stringify({ 
-        error: "Unauthorized", 
+      return new Response(JSON.stringify({
+        error: "Unauthorized",
         message: "Authentication required",
-        details: "No Authorization header found in request" 
+        details: "No Authorization header found in request"
       }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -62,8 +62,8 @@ serve(async (req: Request) => {
 
     if (authError || !authUser) {
       console.error("Verification failed: Auth error details:", authError);
-      return new Response(JSON.stringify({ 
-        error: "Unauthorized", 
+      return new Response(JSON.stringify({
+        error: "Unauthorized",
         message: "Invalid session",
         details: authError?.message || "User not found for token"
       }), {
@@ -160,7 +160,7 @@ serve(async (req: Request) => {
           const customerName = escapeHtml(orderDetails.customer_name);
           const orderNum = escapeHtml(orderDetails.order_number);
           const totalFormatted = Number(orderDetails.total).toFixed(2);
-          
+
           let itemsHtml = "";
           if (orderDetails.order_items && Array.isArray(orderDetails.order_items)) {
             for (const item of orderDetails.order_items) {
@@ -188,7 +188,7 @@ serve(async (req: Request) => {
                   </tr>
                 </table>
               </div>
-              <p>You can track your order progress in your <a href='https://trisutra-wellness.vercel.app/account' style='color: #8d6e63; text-decoration: underline;'>Account Dashboard</a>.</p>
+              <p>You can track your order progress in your <a href='https://trisutra.online/account' style='color: #8d6e63; text-decoration: underline;'>Account Dashboard</a>.</p>
               <p style='margin-top: 30px;'>Warm regards,<br>The TriSutra Team</p>
             </div>
           </div>`;
