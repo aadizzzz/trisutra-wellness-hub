@@ -194,34 +194,44 @@ serve(async (req: Request) => {
           </div>`;
 
           // Send to Customer
-          await fetch("https://api.resend.com/emails", {
+          const custEmailRes = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "Authorization": "Bearer " + RESEND_API_KEY,
             },
             body: JSON.stringify({
-              from: "TriSutra Ayurveda <onboarding@resend.dev>",
+              from: "TriSutra Ayurveda <orders@trisutra.online>",
               to: [orderDetails.customer_email],
               subject: `Order Confirmed - #${orderNum}`,
               html: emailHtml,
             }),
           });
 
+          if (!custEmailRes.ok) {
+            const custEmailErr = await custEmailRes.text();
+            console.error("Customer Email failed:", custEmailErr);
+          }
+
           // Notify Admin
-          await fetch("https://api.resend.com/emails", {
+          const adminEmailRes = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "Authorization": "Bearer " + RESEND_API_KEY,
             },
             body: JSON.stringify({
-              from: "System <onboarding@resend.dev>",
+              from: "System <orders@trisutra.online>",
               to: ["trisutra06@gmail.com"],
               subject: `New Order Received - #${orderNum}`,
               html: `<p>New order confirmed for <b>${customerName}</b> (${escapeHtml(orderDetails.customer_email)}). Total: ₹${totalFormatted}</p>`,
             }),
           });
+
+          if (!adminEmailRes.ok) {
+            const adminEmailErr = await adminEmailRes.text();
+            console.error("Admin Notification failed:", adminEmailErr);
+          }
 
         } catch (emailErr) {
           console.error("Email processing failed:", emailErr);

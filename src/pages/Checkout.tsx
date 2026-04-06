@@ -348,6 +348,19 @@ export default function Checkout() {
                     <span className="text-primary">₹{total.toFixed(2)}</span>
                   </div>
                 </div>
+                {isProcessing && (
+                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-3 animate-pulse">
+                    <div className="bg-amber-100 p-1.5 rounded-full mt-0.5">
+                      <Lock size={14} className="text-amber-700" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Payment in Progress</p>
+                      <p className="text-[11px] text-amber-700 leading-relaxed font-medium">
+                        Please <strong className="underline">do not press the back button</strong>, refresh the page, or close this window while the payment is being processed or until your order is confirmed.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <Button type="submit" className="w-full mt-6 flex items-center gap-2" size="lg" disabled={isProcessing}>
                   <Lock size={16} />
                   {isProcessing ? "Processing..." : paymentMethod === "Online Paid" ? `Pay ₹${total.toFixed(2)}` : `Place Order (₹${total.toFixed(2)})`}

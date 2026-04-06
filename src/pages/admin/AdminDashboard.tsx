@@ -110,6 +110,17 @@ const AdminDashboard = () => {
       toast.error("Failed to update order");
       return;
     }
+
+    if (newStatus === "Shipped") {
+      try {
+        await supabase.functions.invoke("order-status-notification", {
+          body: { order_id: orderId, status: "Shipped" },
+        });
+      } catch (err) {
+        console.error("Failed to trigger shipment notification:", err);
+      }
+    }
+
     toast.success(`Order updated to ${newStatus}`);
     loadOrders();
   };
