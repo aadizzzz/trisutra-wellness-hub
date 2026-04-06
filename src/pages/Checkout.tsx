@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,12 +15,35 @@ import { toast } from "sonner";
 
 type PaymentMethod = "Cash on Delivery" | "Online Paid";
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
+function useRazorpayScript() {
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
+      setLoaded(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => setLoaded(true);
+    document.body.appendChild(script);
+  }, []);
+  return loaded;
+}
+
 export default function Checkout() {
   const { items, getCartTotal, clearCart } = useCart();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Online Paid");
+  const razorpayLoaded = useRazorpayScript();
 
   const [formData, setFormData] = useState({
     name: profile?.full_name || "",
@@ -41,57 +64,126 @@ export default function Checkout() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const createOrder = async () => {
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase().padEnd(5, "X");
+    const orderNumber = `ORD-${dateStr}-${randomStr}`;
+    const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`;
+    const isSubscription = items.some(
+      (item) => item.category === "Subscription" || item.name.toLowerCase().includes("subscription")
+    );
+
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert({
+        order_number: orderNumber,
+        user_id: user?.id || null,
+        customer_name: formData.name,
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+        shipping_address: shippingAddress,
+        subtotal,
+        shipping,
+        total,
+        status: paymentMethod === "Cash on Delivery" ? "New" : "Pending Payment",
+        payment_method: paymentMethod,
+        order_type: isSubscription ? "Subscription" : "Single",
+        payment_status: paymentMethod === "Cash on Delivery" ? "cod" : "pending",
+      })
+      .select("id")
+      .single();
+
+    if (orderError) throw orderError;
+
+    const orderItems = items.map((i) => ({
+      order_id: order.id,
+      name: i.name,
+      price: i.price,
+      quantity: i.quantity,
+    }));
+
+    const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+    if (itemsError) throw itemsError;
+
+    return { orderId: order.id, orderNumber, shippingAddress };
+  };
+
+  const handleOnlinePayment = async (orderId: string, orderNumber: string, shippingAddress: string) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+
+    const res = await supabase.functions.invoke("create-razorpay-order", {
+      body: { amount: total, receipt: orderNumber },
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    });
+
+    if (res.error || !res.data?.orderId) {
+      throw new Error("Failed to create payment order");
+    }
+
+    const { orderId: razorpayOrderId, key } = res.data;
+
+    return new Promise<void>((resolve, reject) => {
+      const options = {
+        key,
+        amount: Math.round(total * 100),
+        currency: "INR",
+        name: "TriSutra Ayurveda",
+        description: `Order ${orderNumber}`,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: formData.name,
+          email: formData.email,
+          contact: formData.phone,
+        },
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await supabase.functions.invoke("verify-razorpay-payment", {
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                order_id: orderId,
+              },
+              headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+            });
+
+            if (verifyRes.error || !verifyRes.data?.verified) {
+              throw new Error("Payment verification failed");
+            }
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        },
+        modal: {
+          ondismiss: () => reject(new Error("Payment cancelled")),
+        },
+        theme: { color: "#8B5E3C" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    });
+  };
+
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
 
+    if (paymentMethod === "Online Paid" && !razorpayLoaded) {
+      toast.error("Payment system is loading. Please try again.");
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-      const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase().padEnd(5, "X");
-      const orderNumber = `ORD-${dateStr}-${randomStr}`;
-      const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`;
+      const { orderId, orderNumber, shippingAddress } = await createOrder();
 
-      const isSubscription = items.some(item =>
-        item.category === "Subscription" || item.name.toLowerCase().includes("subscription")
-      );
-
-      // Insert order
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          order_number: orderNumber,
-          user_id: user?.id || null,
-          customer_name: formData.name,
-          customer_email: formData.email,
-          customer_phone: formData.phone,
-          shipping_address: shippingAddress,
-          subtotal,
-          shipping,
-          total,
-          status: "New",
-          payment_method: paymentMethod,
-          order_type: isSubscription ? "Subscription" : "Single",
-        })
-        .select("id")
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Insert order items
-      const orderItems = items.map(i => ({
-        order_id: order.id,
-        name: i.name,
-        price: i.price,
-        quantity: i.quantity,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
+      if (paymentMethod === "Online Paid") {
+        await handleOnlinePayment(orderId, orderNumber, shippingAddress);
+      }
 
       clearCart();
       navigate("/order-success", {
@@ -101,7 +193,7 @@ export default function Checkout() {
             customerName: formData.name,
             customerEmail: formData.email,
             shippingAddress,
-            items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+            items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
             total,
             paymentMethod,
             date: new Date().toLocaleDateString(),
@@ -109,7 +201,11 @@ export default function Checkout() {
         },
       });
     } catch (err: any) {
-      toast.error(err.message || "Failed to place order. Please try again.");
+      if (err.message === "Payment cancelled") {
+        toast.info("Payment was cancelled.");
+      } else {
+        toast.error(err.message || "Failed to place order. Please try again.");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -183,8 +279,8 @@ export default function Checkout() {
                     <RadioGroupItem value="Online Paid" id="online" className="peer sr-only" />
                     <Label htmlFor="online" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all">
                       <Wallet className="mb-3 h-6 w-6 text-primary" />
-                      <span className="font-semibold">Online Paid</span>
-                      <span className="text-[10px] text-muted-foreground mt-1 text-center">Credit Card / UPI / NetBanking</span>
+                      <span className="font-semibold">Online Payment</span>
+                      <span className="text-[10px] text-muted-foreground mt-1 text-center">Card / UPI / NetBanking / Wallet</span>
                     </Label>
                   </div>
                   <div className="relative">
@@ -233,9 +329,11 @@ export default function Checkout() {
                 </div>
                 <Button type="submit" className="w-full mt-6 flex items-center gap-2" size="lg" disabled={isProcessing}>
                   <Lock size={16} />
-                  {isProcessing ? "Processing..." : `Place Order (₹${total.toFixed(2)})`}
+                  {isProcessing ? "Processing..." : paymentMethod === "Online Paid" ? `Pay ₹${total.toFixed(2)}` : `Place Order (₹${total.toFixed(2)})`}
                 </Button>
-                <p className="text-xs text-center text-muted-foreground mt-4">Secure Checkout. Your details are safe with us.</p>
+                <p className="text-xs text-center text-muted-foreground mt-4">
+                  {paymentMethod === "Online Paid" ? "Secured by Razorpay. Your payment details are safe." : "Secure Checkout. Your details are safe with us."}
+                </p>
               </div>
             </div>
           </form>
