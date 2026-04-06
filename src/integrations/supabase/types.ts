@@ -70,7 +70,9 @@ export type Database = {
           next_renewal: string | null
           order_number: string
           order_type: string
+          payment_id: string | null
           payment_method: string
+          payment_status: string | null
           shipping: number
           shipping_address: string
           status: string
@@ -89,7 +91,9 @@ export type Database = {
           next_renewal?: string | null
           order_number: string
           order_type?: string
+          payment_id?: string | null
           payment_method: string
+          payment_status?: string | null
           shipping?: number
           shipping_address: string
           status?: string
@@ -108,7 +112,9 @@ export type Database = {
           next_renewal?: string | null
           order_number?: string
           order_type?: string
+          payment_id?: string | null
           payment_method?: string
+          payment_status?: string | null
           shipping?: number
           shipping_address?: string
           status?: string
