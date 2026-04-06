@@ -59,7 +59,7 @@ const AdminLogin = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@trisutra.in"
+                  placeholder="admin@gmail.com"
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

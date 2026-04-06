@@ -357,7 +357,7 @@ export default function Account() {
                 <div className="text-right">
                   <h2 className="text-xl font-bold text-primary">TriSutra Ayurveda</h2>
                   <p className="text-sm text-gray-500">Ancient wisdom, modern wellness</p>
-                  <p className="text-sm text-gray-500 mt-2">info@trisutra.in</p>
+                  <p className="text-sm text-gray-500 mt-2">trisutra06@gmail.com</p>
                   <p className="text-sm text-gray-500">+91 98765 43210</p>
                 </div>
               </div>

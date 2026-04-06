@@ -36,7 +36,7 @@ const Footer = () => {
           <div>
             <h4 className="font-heading text-lg font-semibold mb-4">Contact</h4>
             <ul className="space-y-2 font-body text-sm opacity-80">
-              <li>info@trisutra.in</li>
+              <li>trisutra06@gmail.com</li>
               <li>+91 98765 43210</li>
               <li>Mumbai, Maharashtra, India</li>
             </ul>
