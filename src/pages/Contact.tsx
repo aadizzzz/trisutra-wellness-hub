@@ -1,8 +1,11 @@
+import { useState } from "react";
 import Layout from "@/components/Layout";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Phone, Mail, MessageCircle } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
 
@@ -22,6 +25,58 @@ const slideInRight: Variants = {
 };
 
 const Contact = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.message) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("contact_messages")
+        .insert([
+          {
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message,
+          },
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Message Sent",
+        description: "Thank you for reaching out. We'll get back to you soon!",
+      });
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (error: any) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Layout>
       <SEO 
@@ -52,15 +107,46 @@ const Contact = () => {
             variants={slideInLeft}
           >
             <h2 className="font-heading text-2xl font-bold text-foreground mb-6">Send a Message</h2>
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input placeholder="Your Name" className="font-body bg-card" />
-                <Input type="email" placeholder="Email Address" className="font-body bg-card" />
+                <Input 
+                  placeholder="Your Name" 
+                  className="font-body bg-card" 
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  disabled={isSubmitting}
+                />
+                <Input 
+                  type="email" 
+                  placeholder="Email Address" 
+                  className="font-body bg-card" 
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  disabled={isSubmitting}
+                />
               </div>
-              <Input placeholder="Subject" className="font-body bg-card" />
-              <Textarea placeholder="Your message..." rows={5} className="font-body bg-card" />
-              <Button type="submit" size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-body font-semibold px-10">
-                Send Message
+              <Input 
+                placeholder="Subject" 
+                className="font-body bg-card" 
+                value={formData.subject}
+                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                disabled={isSubmitting}
+              />
+              <Textarea 
+                placeholder="Your message..." 
+                rows={5} 
+                className="font-body bg-card" 
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                disabled={isSubmitting}
+              />
+              <Button 
+                type="submit" 
+                size="lg" 
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-body font-semibold px-10"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Sending..." : "Send Message"}
               </Button>
             </form>
           </motion.div>

@@ -5,6 +5,19 @@ const corsHeaders = {
 };
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Utility for XSS protection
+function escapeHtml(text: string): string {
+  if (!text) return "";
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -16,7 +29,7 @@ serve(async (req) => {
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized: Login required" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-type": "application/json" },
       });
     }
 
@@ -32,26 +45,34 @@ serve(async (req) => {
     if (authError || !authUser) {
       return new Response(JSON.stringify({ error: "Unauthorized: Invalid session" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-type": "application/json" },
       });
     }
 
-    const userId = authUser.id;
-
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, order_id } = await req.json();
-
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !order_id) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+    // Input Validation
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-type": "application/json" },
+      });
+    }
+
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, order_id } = body;
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !order_id) {
+      return new Response(JSON.stringify({ error: "Missing required payment fields" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-type": "application/json" },
       });
     }
 
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
     if (!RAZORPAY_KEY_SECRET) {
-      return new Response(JSON.stringify({ error: "Razorpay not configured" }), {
+      return new Response(JSON.stringify({ error: "Server Configuration Error: Payment provider not configured" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-type": "application/json" },
       });
     }
 
@@ -65,25 +86,25 @@ serve(async (req) => {
       ["sign"]
     );
 
-    const message = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const message = razorpay_order_id + "|" + razorpay_payment_id;
     const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
     const expectedSignature = Array.from(new Uint8Array(signature))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
     if (expectedSignature !== razorpay_signature) {
-      return new Response(JSON.stringify({ error: "Payment verification failed" }), {
+      return new Response(JSON.stringify({ error: "Payment security verification failed" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-type": "application/json" },
       });
     }
 
-    // Update order with payment details using service role
     const adminSupabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Update order
     const { error: updateError } = await adminSupabase
       .from("orders")
       .update({
@@ -91,14 +112,107 @@ serve(async (req) => {
         payment_status: "paid",
         status: "Confirmed",
       })
-      .eq("id", order_id);
+      .eq("id", order_id)
+      .eq("user_id", authUser.id); // Security: Ensure order belongs to user
 
     if (updateError) {
       console.error("Order update error:", updateError);
-      return new Response(JSON.stringify({ error: "Failed to update order" }), {
+      return new Response(JSON.stringify({ error: "Internal Server Error: Failed to finalize order" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-type": "application/json" },
       });
+    }
+
+    // Email Notification logic
+    const { data: orderDetails, error: fetchError } = await adminSupabase
+      .from("orders")
+      .select("*, order_items(*)")
+      .eq("id", order_id)
+      .single();
+
+    if (!fetchError && orderDetails) {
+      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+      if (RESEND_API_KEY) {
+        try {
+          const customerName = escapeHtml(orderDetails.customer_name);
+          const orderNum = escapeHtml(orderDetails.order_number);
+          const totalFormatted = Number(orderDetails.total).toFixed(2);
+          
+          let itemsHtml = "";
+          if (orderDetails.order_items && Array.isArray(orderDetails.order_items)) {
+            for (const item of orderDetails.order_items) {
+              const itemName = escapeHtml(item.name);
+              itemsHtml += "<tr><td style='padding: 10px 0;'>" + itemName + " x " + item.quantity + "</td>" +
+                           "<td style='padding: 10px 0; text-align: right;'>₹" + (Number(item.price) * item.quantity).toFixed(2) + "</td></tr>";
+            }
+          }
+
+          const emailHtml = "<div style='font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background-color: #fcf9f5;'>" +
+            "<div style='background-color: #5d4037; color: #ffffff; padding: 30px; text-align: center;'>" +
+              "<h1 style='margin: 0; font-size: 24px; letter-spacing: 2px;'>TRISUTRA AYURVEDA</h1>" +
+              "<p style='margin: 10px 0 0; opacity: 0.8;'>Order Confirmation</p>" +
+            "</div>" +
+            "<div style='padding: 40px; color: #333333; line-height: 1.6;'>" +
+              "<h2 style='color: #5d4037; margin-top: 0;'>Namaste " + customerName + ",</h2>" +
+              "<p>Thank you for choosing TriSutra Ayurveda. Your order <strong>#" + orderNum + "</strong> has been successfully confirmed and is being processed.</p>" +
+              "<div style='margin: 30px 0; padding: 20px; background-color: #ffffff; border-radius: 6px; border: 1px solid #eee;'>" +
+                "<h3 style='margin-top: 0; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;'>Order Summary</h3>" +
+                "<table style='width: 100%; border-collapse: collapse;'>" +
+                  itemsHtml +
+                  "<tr style='border-top: 2px solid #5d4037; font-weight: bold;'>" +
+                    "<td style='padding: 15px 0 0;'>Total Amount</td>" +
+                    "<td style='padding: 15px 0 0; text-align: right; color: #5d4037; font-size: 18px;'>₹" + totalFormatted + "</td>" +
+                  "</tr>" +
+                "</table>" +
+              "</div>" +
+              "<p>You can track your order progress in your <a href='https://trisutra-wellness.vercel.app/account' style='color: #8d6e63; text-decoration: underline;'>Account Dashboard</a>.</p>" +
+              "<p style='margin-top: 30px;'>Warm regards,<br>The TriSutra Team</p>" +
+            "</div>" +
+          "</div>";
+
+          // Send to Customer
+          const custEmailRes = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + RESEND_API_KEY,
+            },
+            body: JSON.stringify({
+              from: "TriSutra Ayurveda <onboarding@resend.dev>",
+              to: [orderDetails.customer_email],
+              subject: "Order Confirmed - #" + orderNum,
+              html: emailHtml,
+            }),
+          });
+          
+          if (!custEmailRes.ok) {
+             const errorData = await custEmailRes.text();
+             console.error("Resend Customer Email Error:", errorData);
+          }
+
+          // Notify Admin
+          const adminEmailRes = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer " + RESEND_API_KEY,
+            },
+            body: JSON.stringify({
+              from: "System <onboarding@resend.dev>",
+              to: ["trisutra06@gmail.com"],
+              subject: "New Order Received - #" + orderNum,
+              html: "<p>New order confirmed for <b>" + customerName + "</b> (" + escapeHtml(orderDetails.customer_email) + "). Total: ₹" + totalFormatted + "</p>",
+            }),
+          });
+
+          if (!adminEmailRes.ok) {
+            const errorData = await adminEmailRes.text();
+            console.error("Resend Admin Alert Error:", errorData);
+          }
+        } catch (emailErr) {
+          console.error("Email processing failed:", emailErr);
+        }
+      }
     }
 
     return new Response(JSON.stringify({ verified: true }), {
@@ -106,7 +220,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Error:", err);
+    console.error("Fatal Error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
