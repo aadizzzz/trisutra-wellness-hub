@@ -39,11 +39,18 @@ function useRazorpayScript() {
 
 export default function Checkout() {
   const { items, getCartTotal, clearCart } = useCart();
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Online Paid");
   const razorpayLoaded = useRazorpayScript();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast.error("Please login to continue to checkout");
+      navigate("/auth?redirect=/checkout");
+    }
+  }, [user, authLoading, navigate]);
 
   const [formData, setFormData] = useState({
     name: profile?.full_name || "",
@@ -77,7 +84,7 @@ export default function Checkout() {
       .from("orders")
       .insert({
         order_number: orderNumber,
-        user_id: user?.id || null,
+        user_id: user!.id,
         customer_name: formData.name,
         customer_email: formData.email,
         customer_phone: formData.phone,
@@ -138,15 +145,18 @@ export default function Checkout() {
         },
         handler: async (response: any) => {
           try {
-            const verifyRes = await supabase.functions.invoke("verify-razorpay-payment", {
-              body: {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                order_id: orderId,
-              },
-              headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-            });
+                const { data: freshSession } = await supabase.auth.getSession();
+                const freshToken = freshSession?.session?.access_token;
+                
+                const verifyRes = await supabase.functions.invoke("verify-razorpay-payment", {
+                  body: {
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                    order_id: orderId,
+                  },
+                  headers: freshToken ? { Authorization: `Bearer ${freshToken}` } : undefined,
+                });
 
             if (verifyRes.error || !verifyRes.data?.verified) {
               throw new Error("Payment verification failed");
@@ -210,6 +220,16 @@ export default function Checkout() {
       setIsProcessing(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   if (items.length === 0) {
     return (
