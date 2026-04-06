@@ -116,12 +116,8 @@ export default function Checkout() {
   };
 
   const handleOnlinePayment = async (orderId: string, orderNumber: string, shippingAddress: string) => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token;
-
     const res = await supabase.functions.invoke("create-razorpay-order", {
       body: { amount: total, receipt: orderNumber },
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
     });
 
     if (res.error || !res.data?.orderId) {
@@ -145,8 +141,7 @@ export default function Checkout() {
         },
         handler: async (response: any) => {
           try {
-                const { data: freshSession } = await supabase.auth.getSession();
-                const freshToken = freshSession?.session?.access_token;
+                const { data: { session } } = await supabase.auth.getSession();
                 
                 const verifyRes = await supabase.functions.invoke("verify-razorpay-payment", {
                   body: {
@@ -155,11 +150,17 @@ export default function Checkout() {
                     razorpay_signature: response.razorpay_signature,
                     order_id: orderId,
                   },
-                  headers: freshToken ? { Authorization: `Bearer ${freshToken}` } : undefined,
                 });
 
-            if (verifyRes.error || !verifyRes.data?.verified) {
-              throw new Error("Payment verification failed");
+            if (verifyRes.error) {
+              console.error("Payment verification invoke error:", verifyRes.error);
+              throw new Error(`Payment verification failed: ${verifyRes.error.message || 'Check console'}`);
+            }
+            if (!verifyRes.data?.verified) {
+              console.error("Payment verification failed:", verifyRes.data);
+              const errorMsg = verifyRes.data?.message || verifyRes.data?.error || "Payment verification failed";
+              const extraDetails = verifyRes.data?.details ? ` (${verifyRes.data.details})` : "";
+              throw new Error(`${errorMsg}${extraDetails}`);
             }
             resolve();
           } catch (err) {

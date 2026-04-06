@@ -1,9 +1,14 @@
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// @ts-ignore
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+declare const Deno: any;
 
 // Utility for XSS protection
 function escapeHtml(text: string): string {
@@ -18,7 +23,7 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -26,26 +31,42 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
 
-    if (!authHeader?.startsWith("Bearer ")) {
+    if (!authHeader) {
       console.error("Verification failed: Missing Authorization header");
-      return new Response(JSON.stringify({ error: "Unauthorized: Please login to verify payment" }), {
+      return new Response(JSON.stringify({ 
+        error: "Unauthorized", 
+        message: "Authentication required",
+        details: "No Authorization header found in request" 
+      }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      return new Response(JSON.stringify({ error: "Internal Server Error", message: "Supabase configuration missing on server" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser(token);
 
     if (authError || !authUser) {
-      console.error("Verification failed: Invalid session", authError);
-      return new Response(JSON.stringify({ error: "Unauthorized: Session expired. Please login again." }), {
+      console.error("Verification failed: Auth error details:", authError);
+      return new Response(JSON.stringify({ 
+        error: "Unauthorized", 
+        message: "Invalid session",
+        details: authError?.message || "User not found for token"
+      }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
