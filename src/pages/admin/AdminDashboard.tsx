@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-type OrderStatus = "New" | "Processing" | "Shipped" | "Completed";
+type OrderStatus = "Pending Payment" | "Confirmed" | "New" | "Processing" | "Shipped" | "Completed" | "Cancelled";
 type ActiveView = "single-new" | "single-processing" | "single-completed" | "sub-new" | "sub-active";
 
 interface OrderItem {
@@ -140,10 +140,13 @@ const AdminDashboard = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "Pending Payment": return <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200">Pending</Badge>;
+      case "Confirmed": return <Badge className="bg-green-500">Confirmed</Badge>;
       case "New": return <Badge className="bg-blue-500">New</Badge>;
       case "Processing": return <Badge variant="secondary" className="bg-amber-100 text-amber-800">Processing</Badge>;
       case "Shipped": return <Badge className="bg-purple-500">Shipped</Badge>;
       case "Completed": return <Badge className="bg-emerald-500">Completed</Badge>;
+      case "Cancelled": return <Badge variant="destructive">Cancelled</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -217,7 +220,7 @@ const AdminDashboard = () => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex flex-col items-end gap-2">
-                    {order.status === "New" && (
+                    {(order.status === "New" || order.status === "Confirmed") && (
                       <Button size="sm" onClick={() => updateStatus(order.id, "Processing")} className="h-9 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white w-full max-w-[170px] shadow-sm">
                         <CheckCircle size={14} /> Process
                       </Button>
@@ -290,7 +293,7 @@ const AdminDashboard = () => {
             <div className="flex flex-col">
               <Button variant="ghost" className={navItemClass("single-new")} onClick={() => setActiveView("single-new")}>
                 <ShoppingCart size={18} /> New Orders
-                <Badge className="ml-auto bg-primary text-primary-foreground">{getFilteredOrders("Single", ["New"]).length}</Badge>
+                <Badge className="ml-auto bg-primary text-primary-foreground">{getFilteredOrders("Single", ["New", "Confirmed", "Pending Payment"]).length}</Badge>
               </Button>
               <Button variant="ghost" className={navItemClass("single-processing")} onClick={() => setActiveView("single-processing")}>
                 <RefreshCw size={18} /> Processing
@@ -342,7 +345,7 @@ const AdminDashboard = () => {
         </header>
 
         <div className="max-w-7xl">
-          {activeView === "single-new" && renderOrderTable(getFilteredOrders("Single", ["New"]))}
+          {activeView === "single-new" && renderOrderTable(getFilteredOrders("Single", ["New", "Confirmed", "Pending Payment"]))}
           {activeView === "single-processing" && renderOrderTable(getFilteredOrders("Single", ["Processing"]))}
           {activeView === "single-completed" && renderOrderTable(getFilteredOrders("Single", ["Shipped", "Completed"]))}
           {activeView === "sub-new" && renderOrderTable(getFilteredOrders("Subscription", ["New", "Processing"]))}
