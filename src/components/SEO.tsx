@@ -8,31 +8,59 @@ interface SEOProps {
   type?: "website" | "article" | "product";
   schema?: Record<string, any>;
   keywords?: string;
+  breadcrumbs?: { name: string; item: string }[];
+  faq?: { question: string; answer: string }[];
 }
 
 const SEO = ({
-  title = "TriSutra Ayurveda — Ancient Wisdom, Modern Wellness",
-  description = "TriSutra Ayurveda offers authentic Swarnprashan and traditional Ayurvedic wellness products for children's immunity, growth, and overall health.",
+  title = "TriSutra Ayurveda — Ayurvedic Immunity Drops for Kids | Swarnprashan",
+  description = "Authentic Swarnprashan drops for kids immunity. TriSutra Ayurveda offers doctor-approved, natural wellness products for children's growth and health. Buy Swarnprashan online.",
   image = "/trisutra-logo.png",
   type = "website",
   schema,
-  keywords = "Ayurveda, Swarnprashan, children immunity, ayurvedic wellness, ancient wisdom",
+  keywords = "Ayurveda, Swarnprashan, buy swarnprashan online, ayurvedic immunity drops for kids, children immunity, ayurvedic baby immunity booster india, ancient wisdom",
+  breadcrumbs,
+  faq,
 }: SEOProps) => {
   const location = useLocation();
-  const siteUrl = "https://tri-sutra.com"; // Replace with actual domain if known
+  const siteUrl = "https://trisutra.online";
   const currentUrl = `${siteUrl}${location.pathname}`;
 
-  // Base Schema for Organization
-  const baseSchema = {
+  const finalSchema = schema || {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "TriSutra Ayurveda",
-    url: siteUrl,
-    logo: `${siteUrl}/trisutra-logo.png`,
-    description: "Authentic Ayurvedic wellness products emphasizing traditional wisdom.",
+    "name": "TriSutra Ayurveda",
+    "url": siteUrl,
+    "logo": `${siteUrl}/trisutra-logo.png`,
+    "description": "Authentic Ayurvedic wellness products emphasizing traditional wisdom.",
+    "sameAs": [
+      "https://instagram.com/_trisutra_"
+    ]
   };
 
-  const finalSchema = schema || baseSchema;
+  const breadcrumbSchema = breadcrumbs ? {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": breadcrumbs.map((b, i) => ({
+      "@type": "ListItem",
+      "position": i + 1,
+      "name": b.name,
+      "item": `${siteUrl}${b.item}`
+    }))
+  } : null;
+
+  const faqSchema = faq ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faq.map((f) => ({
+      "@type": "Question",
+      "name": f.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": f.answer
+      }
+    }))
+  } : null;
 
   return (
     <Helmet>
@@ -59,6 +87,16 @@ const SEO = ({
       <script type="application/ld+json">
         {JSON.stringify(finalSchema)}
       </script>
+      {breadcrumbSchema && (
+        <script type="application/ld+json">
+          {JSON.stringify(breadcrumbSchema)}
+        </script>
+      )}
+      {faqSchema && (
+        <script type="application/ld+json">
+          {JSON.stringify(faqSchema)}
+        </script>
+      )}
     </Helmet>
   );
 };

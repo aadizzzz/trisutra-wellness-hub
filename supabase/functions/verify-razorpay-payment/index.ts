@@ -178,6 +178,14 @@ serve(async (req: Request) => {
             <div style='padding: 40px; color: #333333; line-height: 1.6;'>
               <h2 style='color: #5d4037; margin-top: 0;'>Namaste ${customerName},</h2>
               <p>Thank you for choosing TriSutra Ayurveda. Your order <strong>#${orderNum}</strong> has been successfully confirmed and is being processed.</p>
+              
+              <div style='margin: 30px 0; text-align: center;'>
+                <a href='https://trisutra.online/account?tab=orders' 
+                   style='background-color: #8d6e63; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;'>
+                  Track Your Order
+                </a>
+              </div>
+
               <div style='margin: 30px 0; padding: 20px; background-color: #ffffff; border-radius: 6px; border: 1px solid #eee;'>
                 <h3 style='margin-top: 0; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;'>Order Summary</h3>
                 <table style='width: 100%; border-collapse: collapse;'>
@@ -188,7 +196,6 @@ serve(async (req: Request) => {
                   </tr>
                 </table>
               </div>
-              <p>You can track your order progress in your <a href='https://trisutra.online/account' style='color: #8d6e63; text-decoration: underline;'>Account Dashboard</a>.</p>
               <p style='margin-top: 30px;'>Warm regards,<br>The TriSutra Team</p>
             </div>
           </div>`;

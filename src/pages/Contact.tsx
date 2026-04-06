@@ -80,9 +80,14 @@ const Contact = () => {
   return (
     <Layout>
       <SEO 
-        title="Contact TriSutra Ayurveda | We're Here to Help"
-        description="Reach out to TriSutra Ayurveda for questions about Swarnprashan, Ayurvedic consultations, and wellness products."
+        title="Contact TriSutra Ayurveda – Expert Consultations & Support"
+        description="Have questions about Swarnprashan or Ayurvedic wellness? Contact TriSutra Ayurveda for expert guidance. We're here to support your family's health journey."
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "Contact", item: "/contact" }
+        ]}
         type="website"
+        keywords="contact TriSutra, Ayurvedic consultation Mumbai, Swarnprashan support, TriSutra customer care"
       />
       <section className="section-padding gradient-earth">
         <motion.div

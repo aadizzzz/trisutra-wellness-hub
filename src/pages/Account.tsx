@@ -2,8 +2,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Package, Settings, LogOut } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Download, Loader2 } from "lucide-react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { useRef } from "react";
 
 interface OrderItem {
   id: string;
@@ -38,7 +37,8 @@ interface OrderRow {
 }
 
 export default function Account() {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "profile");
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [editing, setEditing] = useState(false);
   const [isDownloadingId, setIsDownloadingId] = useState<string | null>(null);
@@ -52,6 +52,13 @@ export default function Account() {
       navigate("/login");
     }
   }, [loading, user, navigate]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && (tab === "orders" || tab === "profile" || tab === "settings")) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (profile) {

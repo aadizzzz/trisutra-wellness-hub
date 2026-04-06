@@ -19,6 +19,9 @@ const fadeUpChild: Variants = {
 };
 
 const posts = [
+  { slug: "benefits-of-swarnprashan-for-kids", title: "Benefits of Swarnprashan for Kids: Why Every Child Needs It", category: "Immunity", date: "April 5, 2026", excerpt: "Discover how Swarnprashan builds a foundation of health, strengthens immunity, and enhances cognitive function in growing children." },
+  { slug: "best-time-to-give-swarnprashan", title: "Best Time to Give Swarnprashan: The Pushya Nakshatra Secret", category: "Traditions", date: "April 2, 2026", excerpt: "Learn why timing matters in Ayurveda and how Pushya Nakshatra maximizes the benefits of Swarna Bhasma for your child." },
+  { slug: "is-swarnprashan-safe", title: "Is Swarnprashan Safe? Expert Ayurvedic Advice for Parents", category: "Child Health", date: "March 28, 2026", excerpt: "We address common safety concerns and explain the rigorous purification process (Shodhana) of gold ash used in TriSutra drops." },
   { slug: "what-is-swarnprashan", title: "What is Swarnprashan? A Complete Guide for Parents", category: "Child Health", date: "March 15, 2026", excerpt: "Learn about this ancient Ayurvedic immunization practice and how it can benefit your child's overall development." },
   { slug: "immunity-ayurveda", title: "5 Ayurvedic Ways to Boost Your Child's Immunity", category: "Immunity", date: "March 8, 2026", excerpt: "Natural and time-tested methods from Ayurveda to strengthen your child's immune system without any side effects." },
   { slug: "pushya-nakshatra", title: "Why Pushya Nakshatra is the Best Day for Swarnprashan", category: "Traditions", date: "February 28, 2026", excerpt: "Understanding the astrological and scientific significance of administering Swarnprashan on Pushya Nakshatra." },
@@ -33,9 +36,14 @@ const Blog = () => {
   return (
     <Layout>
       <SEO 
-        title="Ayurvedic Health Blog | TriSutra Ayurveda"
-        description="Insights, tips, and traditional wisdom on Ayurvedic health, child wellness, and Swarnprashan from our expert Vaidyas."
+        title="Ayurvedic Child Wellness Blog – Swarnprashan Guides & Tips | TriSutra"
+        description="Insights, tips, and traditional wisdom on Ayurvedic health, child wellness, and Swarnprashan from our expert Vaidyas. Learn benefits, safety, and Pushya Nakshatra timing."
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "Blog", item: "/blog" }
+        ]}
         type="website"
+        keywords="Ayurvedic health blog, Swarnprashan benefits for kids, child immunity tips India, Vedic parenting"
       />
       <section className="section-padding gradient-earth">
         <motion.div

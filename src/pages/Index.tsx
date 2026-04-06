@@ -52,23 +52,38 @@ const Index = () => {
   return (
     <Layout>
       <SEO 
-        title="TriSutra Ayurveda — Authentic Swarnprashan & Wellness"
-        description="Experience the ancient wisdom of TriSutra Ayurveda with our signature Swarnprashan drops for children. Boost immunity and cognitive growth naturally."
+        title="TriSutra Ayurveda – Ayurvedic Immunity Drops for Kids | Swarnprashan"
+        description="Experience the ancient wisdom of TriSutra Ayurveda with our signature Swarnprashan drops for children. Boost immunity and cognitive growth naturally. Buy Swarnprashan online."
+        breadcrumbs={[
+          { name: "Home", item: "/" }
+        ]}
         schema={{
           "@context": "https://schema.org",
           "@type": "LocalBusiness",
           "name": "TriSutra Ayurveda",
           "description": "Authentic Swarnprashan and traditional Ayurvedic wellness products for children's immunity, growth, and overall health.",
-          "url": "https://tri-sutra.com",
-          "logo": "https://tri-sutra.com/trisutra-logo.png",
-          "image": "https://tri-sutra.com/hero-swarnprashan.jpg",
-          "priceRange": "$$"
+          "url": "https://trisutra.online",
+          "logo": "https://trisutra.online/trisutra-logo.png",
+          "image": "https://trisutra.online/hero-swarnprashan.jpg",
+          "priceRange": "₹₹",
+          "telephone": "+91 98765 43210",
+          "email": "trisutra06@gmail.com",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Mumbai",
+            "addressRegion": "Maharashtra",
+            "addressCountry": "IN"
+          },
+          "sameAs": [
+            "https://instagram.com/_trisutra_"
+          ]
         }}
+        keywords="buy swarnprashan online, ayurvedic immunity drops for kids, best swarnprashan near me, ayurvedic baby immunity booster india, TriSutra Ayurveda, TriSutra India"
       />
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroImage} alt="Swarnprashan Ayurvedic Wellness" className="w-full h-full object-cover" width={1920} height={1080} />
+          <img src={heroImage} alt="TriSutra Ayurveda Swarnprashan – Ancient Wisdom for Modern Wellness" className="w-full h-full object-cover" width={1920} height={1080} />
           <div className="absolute inset-0 bg-foreground/50" />
         </div>
         <div className="relative container-custom px-4 sm:px-6 lg:px-8">

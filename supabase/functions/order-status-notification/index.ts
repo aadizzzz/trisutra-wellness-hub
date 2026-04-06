@@ -83,7 +83,12 @@ serve(async (req: Request) => {
           <p style='font-size: 20px; font-weight: bold; margin: 10px 0; color: #5d4037;'>${estDelivery}</p>
         </div>
 
-        <p>You can view your order details and track progress in your <a href='https://trisutra.online/account' style='color: #8d6e63; text-decoration: underline;'>Account Dashboard</a>.</p>
+        <div style='margin: 30px 0; text-align: center;'>
+          <a href='https://trisutra.online/account?tab=orders' 
+             style='background-color: #8d6e63; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;'>
+            Track Your Order
+          </a>
+        </div>
         
         <p style='margin-top: 30px;'>Thank you for choosing a natural path to wellness.</p>
         <p>Warm regards,<br>The TriSutra Team</p>

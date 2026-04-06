@@ -34,9 +34,14 @@ const Shop = () => {
   return (
     <Layout>
       <SEO 
-        title="Shop Authentic Ayurvedic Health Products | TriSutra Ayurveda"
-        description="Browse our collection of authentic Ayurvedic health solutions including Swarnprashan for your family's overall wellness."
+        title="Shop Swarnprashan & Ayurvedic Health Products Online | TriSutra"
+        description="Browse our collection of authentic Ayurvedic health solutions. Buy Swarnprashan drops online for your family's immunity, growth, and overall wellness. Best prices guaranteed."
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "Shop", item: "/shop" }
+        ]}
         type="website"
+        keywords="buy swarnprashan online, ayurvedic immunity booster for kids shop, TriSutra shop, authentic ayurveda products india"
       />
       <section className="section-padding gradient-earth">
         <motion.div

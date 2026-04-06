@@ -33,9 +33,14 @@ const About = () => {
   return (
     <Layout>
       <SEO 
-        title="About TriSutra Ayurveda - Our Story and Philosophy"
-        description="Learn about TriSutra Ayurveda's journey to bring ancient Vedic wisdom and authentic wellness to modern families."
+        title="About TriSutra Ayurveda – Ancient Vedic Wisdom & Modern Wellness Heritage"
+        description="Discover the story of TriSutra Ayurveda. Rooted in the three pillars of Vedic wellness (Hetu, Linga, Aushadha), we bring authentic Swarnprashan to modern families."
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: "About", item: "/about" }
+        ]}
         type="website"
+        keywords="TriSutra Ayurveda history, Vedic wellness heritage, authentic Ayurvedic brand India, Hetu Linga Aushadha"
       />
       {/* Hero */}
       <section className="section-padding gradient-earth relative overflow-hidden">
