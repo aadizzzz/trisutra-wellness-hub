@@ -67,7 +67,7 @@ serve(async (req) => {
         "Authorization": "Bearer " + RESEND_API_KEY,
       },
       body: JSON.stringify({
-        from: "TriSutra Contact <onboarding@resend.dev>",
+        from: "TriSutra Ayurveda <contact@trisutra.online>",
         to: ["trisutra06@gmail.com"],
         subject: "New Message from " + safeName + ": " + safeSubject,
         html: "<h3>New Contact Form Submission</h3>" +

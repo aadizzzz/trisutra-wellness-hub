@@ -67,7 +67,7 @@ const Index = () => {
           "image": "https://trisutra.online/hero-swarnprashan.jpg",
           "priceRange": "₹₹",
           "telephone": "+91 98765 43210",
-          "email": "trisutra06@gmail.com",
+          "email": "contact@trisutra.online",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Mumbai",

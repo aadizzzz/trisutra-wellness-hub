@@ -168,7 +168,7 @@ const Contact = () => {
               {[
                 { icon: MapPin, label: "Clinic Address", value: "TriSutra Ayurveda Clinic\n123 Wellness Street, Andheri West\nMumbai, Maharashtra 400058" },
                 { icon: Phone, label: "Phone", value: "+91 98765 43210" },
-                { icon: Mail, label: "Email", value: "trisutra06@gmail.com" },
+                { icon: Mail, label: "Email", value: "contact@trisutra.online" },
               ].map((c, i) => (
                 <div key={i} className="flex gap-4">
                   <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0">
