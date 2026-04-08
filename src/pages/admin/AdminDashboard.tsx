@@ -7,8 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   LayoutDashboard, LogOut, Package, RefreshCw, Send,
-  CheckCircle, Clock, ShoppingCart, Archive, Repeat, Printer, CreditCard, Wallet
+  CheckCircle, Clock, ShoppingCart, Archive, Repeat, Printer, CreditCard, Wallet,
+  TrendingUp, BarChart3, PieChart as PieChartIcon, IndianRupee, Trash2, Check, Calendar
 } from "lucide-react";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, Legend
+} from "recharts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +28,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 type OrderStatus = "Pending Payment" | "Confirmed" | "New" | "Processing" | "Shipped" | "Completed" | "Cancelled";
-type ActiveView = "single-new" | "single-processing" | "single-completed" | "sub-new" | "sub-active";
+type ActiveView = "single-new" | "single-processing" | "single-completed" | "sub-new" | "sub-active" | "revenue";
 
 interface OrderItem {
   id: string;
@@ -39,6 +51,9 @@ interface Order {
   payment_method: string;
   order_type: string;
   est_delivery: string | null;
+  next_renewal: string | null;
+  payment_id: string | null;
+  payment_status: string | null;
   created_at: string;
   order_items: OrderItem[];
 }
@@ -50,6 +65,7 @@ const AdminDashboard = () => {
   const [deliveryDates, setDeliveryDates] = useState<{ [key: string]: string }>({});
   const [activeView, setActiveView] = useState<ActiveView>("single-new");
   const [isPrinting, setIsPrinting] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<string>("30 days");
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   const loadOrders = async () => {
@@ -122,6 +138,24 @@ const AdminDashboard = () => {
     }
 
     toast.success(`Order updated to ${newStatus}`);
+    loadOrders();
+  };
+  
+  const deleteOrder = async (orderId: string) => {
+    if (!confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
+    
+    const { error } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", orderId);
+      
+    if (error) {
+      toast.error("Failed to delete order");
+      console.error(error);
+      return;
+    }
+    
+    toast.success("Order deleted successfully");
     loadOrders();
   };
 
@@ -205,9 +239,16 @@ const AdminDashboard = () => {
                       <Wallet size={10} /> COD
                     </Badge>
                   ) : (
-                    <Badge variant="default" className="bg-green-600 text-white hover:bg-green-600 gap-1 font-body text-[10px] h-6 shadow-sm border-none">
-                      <CreditCard size={10} /> Online Paid
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant="default" className="bg-green-600 text-white hover:bg-green-600 gap-1 font-body text-[10px] h-6 shadow-sm border-none">
+                        <CreditCard size={10} /> Online Paid
+                      </Badge>
+                      {order.payment_id && (
+                        <div className="text-[9px] text-muted-foreground font-mono bg-muted px-1 py-0.5 rounded border truncate max-w-[100px]" title={order.payment_id}>
+                          ID: {order.payment_id}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>
@@ -231,6 +272,16 @@ const AdminDashboard = () => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex flex-col items-end gap-2">
+                    {order.status === "Pending Payment" && (
+                      <div className="flex flex-col gap-2 w-full max-w-[170px]">
+                        <Button size="sm" onClick={() => updateStatus(order.id, "Confirmed")} className="h-9 gap-1.5 bg-green-600 hover:bg-green-700 text-white w-full shadow-sm">
+                          <Check size={14} /> Accept Payment
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => deleteOrder(order.id)} className="h-9 gap-1.5 w-full shadow-sm">
+                          <Trash2 size={14} /> Delete Order
+                        </Button>
+                      </div>
+                    )}
                     {(order.status === "New" || order.status === "Confirmed") && (
                       <Button size="sm" onClick={() => updateStatus(order.id, "Processing")} className="h-9 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white w-full max-w-[170px] shadow-sm">
                         <CheckCircle size={14} /> Process
@@ -274,6 +325,242 @@ const AdminDashboard = () => {
 
   const getFilteredOrders = (type: string, statusMatch: string[]) => {
     return orders.filter(o => o.order_type === type && statusMatch.includes(o.status));
+  };
+
+  const renderRevenueDashboard = () => {
+    // Filter orders by date range
+    const now = new Date();
+    const filteredOrders = orders.filter(o => {
+      if (o.status === "Cancelled") return false;
+      const orderDate = new Date(o.created_at);
+      if (dateRange === "7 days") {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return orderDate >= sevenDaysAgo;
+      }
+      if (dateRange === "30 days") {
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        return orderDate >= thirtyDaysAgo;
+      }
+      if (dateRange === "This Month") {
+        return orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear();
+      }
+      return true; // All Time
+    });
+
+    const totalRevenue = filteredOrders.reduce((acc, o) => acc + o.total, 0);
+    const totalOrders = filteredOrders.length;
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    
+    // Group by day for the trend chart
+    const dailyData: { [key: string]: number } = {};
+    filteredOrders.forEach(o => {
+      const date = new Date(o.created_at).toLocaleDateString();
+      dailyData[date] = (dailyData[date] || 0) + o.total;
+    });
+    
+    const chartData = Object.entries(dailyData)
+      .map(([date, amount]) => ({ date, amount }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Payment method split
+    const codRevenue = filteredOrders.filter(o => o.payment_method === "Cash on Delivery").reduce((acc, o) => acc + o.total, 0);
+    const onlineRevenue = totalRevenue - codRevenue;
+    const paymentData = [
+      { name: "COD", value: codRevenue, color: "#f59e0b" },
+      { name: "Online", value: onlineRevenue, color: "#10b981" }
+    ];
+
+    // Order type split
+    const singleRevenue = filteredOrders.filter(o => o.order_type === "Single").reduce((acc, o) => acc + o.total, 0);
+    const subRevenue = totalRevenue - singleRevenue;
+    const typeData = [
+      { name: "Single", value: singleRevenue, color: "#3b82f6" },
+      { name: "Subscription", value: subRevenue, color: "#8b5cf6" }
+    ];
+
+    return (
+      <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex items-center gap-2 bg-background p-1 rounded-lg border shadow-sm flex-wrap">
+            <Button 
+              variant={dateRange === "7 days" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setDateRange("7 days")}
+              className="px-4 text-[10px] h-8"
+            >7 Days</Button>
+            <Button 
+              variant={dateRange === "30 days" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setDateRange("30 days")}
+              className="px-4 text-[10px] h-8"
+            >30 Days</Button>
+            <Button 
+              variant={dateRange === "This Month" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setDateRange("This Month")}
+              className="px-4 text-[10px] h-8"
+            >This Month</Button>
+            <Button 
+              variant={dateRange === "All Time" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setDateRange("All Time")}
+              className="px-4 text-[10px] h-8"
+            >All Time</Button>
+          </div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 bg-card px-4 py-2 rounded-lg border shadow-sm">
+            <Calendar size={12} />
+            Period: <span className="text-primary font-black">{dateRange}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="border-none shadow-md bg-gradient-to-br from-primary/10 to-primary/5">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-primary font-bold flex items-center gap-2 uppercase tracking-wider text-[10px]">
+                <IndianRupee size={12} /> Total Revenue
+              </CardDescription>
+              <CardTitle className="text-4xl font-black">₹{totalRevenue.toLocaleString()}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold">
+                <TrendingUp size={14} />
+                <span>Actual Sales Generated</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-none shadow-md">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-muted-foreground font-bold flex items-center gap-2 uppercase tracking-wider text-[10px]">
+                <ShoppingCart size={12} /> Total Orders
+              </CardDescription>
+              <CardTitle className="text-4xl font-black">{totalOrders}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-muted-foreground text-xs font-bold italic">
+                Processed Orders Count
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-md">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-muted-foreground font-bold flex items-center gap-2 uppercase tracking-wider text-[10px]">
+                <BarChart3 size={12} /> Avg. Value
+              </CardDescription>
+              <CardTitle className="text-4xl font-black">₹{avgOrderValue.toFixed(0)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-muted-foreground text-xs font-bold italic">
+                Per Order Revenue
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="shadow-xl border-none p-6 bg-card overflow-hidden">
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-bold uppercase tracking-tight">Revenue Trend</h3>
+              <p className="text-sm text-muted-foreground">Daily sales performance over time</p>
+            </div>
+            <div className="bg-primary/10 text-primary p-2 rounded-lg">
+              <BarChart3 size={24} />
+            </div>
+          </div>
+          <div className="h-[350px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{fontSize: 9, fontWeight: 'bold'}} 
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
+                />
+                <YAxis 
+                  tick={{fontSize: 9, fontWeight: 'bold'}} 
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(value) => `₹${value}`}
+                />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px' }}
+                  cursor={{fill: '#f1f5f9'}}
+                  formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                />
+                <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Card className="shadow-xl border-none p-8 flex flex-col items-center">
+            <div className="mb-6 w-full text-left">
+              <h3 className="text-lg font-bold uppercase tracking-tight">Payment Methods</h3>
+              <p className="text-sm text-muted-foreground font-medium">Revenue split by source</p>
+            </div>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={paymentData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={8}
+                    dataKey="value"
+                  >
+                    {paymentData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                     contentStyle={{ borderRadius: '12px', border: 'none' }}
+                     formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                  />
+                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{paddingTop: '20px', fontSize: '10px', fontWeight: 'bold'}}/>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card className="shadow-xl border-none p-8 flex flex-col items-center">
+            <div className="mb-6 w-full text-left">
+              <h3 className="text-lg font-bold uppercase tracking-tight">Order Breakdown</h3>
+              <p className="text-sm text-muted-foreground font-medium">Single purchase vs Subscriptions</p>
+            </div>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={typeData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={8}
+                    dataKey="value"
+                  >
+                    {typeData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                     contentStyle={{ borderRadius: '12px', border: 'none' }}
+                     formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                  />
+                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{paddingTop: '20px', fontSize: '10px', fontWeight: 'bold'}}/>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
   };
 
   const navItemClass = (view: ActiveView) =>
@@ -327,6 +614,14 @@ const AdminDashboard = () => {
               </Button>
             </div>
           </div>
+          <div>
+            <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] px-8 mb-4 opacity-50">Financials</h3>
+            <div className="flex flex-col">
+              <Button variant="ghost" className={navItemClass("revenue")} onClick={() => setActiveView("revenue")}>
+                <TrendingUp size={18} /> Revenue
+              </Button>
+            </div>
+          </div>
         </nav>
 
         <div className="p-6 border-t mt-auto">
@@ -345,9 +640,12 @@ const AdminDashboard = () => {
               {activeView === "single-completed" && "Sales Archive"}
               {activeView === "sub-new" && "Pending Renewals"}
               {activeView === "sub-active" && "Active Subscribers"}
+              {activeView === "revenue" && "Financial Insights"}
             </h2>
             <p className="text-muted-foreground mt-2 text-lg">
-              Manage fulfillment and generate delivery documentation.
+              {activeView === "revenue" 
+                ? "Analyze sales performance and revenue metrics." 
+                : "Manage fulfillment and generate delivery documentation."}
             </p>
           </div>
           <Button variant="outline" onClick={loadOrders} className="gap-2">
@@ -361,6 +659,7 @@ const AdminDashboard = () => {
           {activeView === "single-completed" && renderOrderTable(getFilteredOrders("Single", ["Shipped", "Completed"]))}
           {activeView === "sub-new" && renderOrderTable(getFilteredOrders("Subscription", ["New", "Processing"]))}
           {activeView === "sub-active" && renderOrderTable(getFilteredOrders("Subscription", ["Shipped", "Completed"]))}
+          {activeView === "revenue" && renderRevenueDashboard()}
         </div>
 
         {/* HIDDEN INVOICE TEMPLATE FOR PRINTING */}
