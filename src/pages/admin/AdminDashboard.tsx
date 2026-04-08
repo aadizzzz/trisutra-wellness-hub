@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import {
   LayoutDashboard, LogOut, Package, RefreshCw, Send,
   CheckCircle, Clock, ShoppingCart, Archive, Repeat, Printer, CreditCard, Wallet,
-  TrendingUp, BarChart3, PieChart as PieChartIcon, IndianRupee, Trash2, Check, Calendar
+  TrendingUp, BarChart3, PieChart as PieChartIcon, IndianRupee, Trash2, Check, Calendar as CalendarIcon
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -21,6 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -144,6 +148,18 @@ const AdminDashboard = () => {
   const deleteOrder = async (orderId: string) => {
     if (!confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
     
+    // Delete dependent order items first to avoid foreign key violations
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .delete()
+      .eq("order_id", orderId);
+
+    if (itemsError) {
+      toast.error("Failed to delete order items");
+      console.error(itemsError);
+      return;
+    }
+
     const { error } = await supabase
       .from("orders")
       .delete()
@@ -290,11 +306,34 @@ const AdminDashboard = () => {
                     {order.status === "Processing" && (
                       <div className="flex flex-col gap-2 w-full max-w-[170px]">
                         <div className="px-1 text-[9px] font-bold text-muted-foreground uppercase tracking-widest text-left w-full">Est. Delivery Date</div>
-                        <Input
-                          type="date"
-                          className="h-10 text-xs w-full"
-                          onChange={(e) => setDeliveryDates(prev => ({ ...prev, [order.id]: e.target.value }))}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal h-10 text-xs",
+                                !deliveryDates[order.id] && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {deliveryDates[order.id] ? format(new Date(deliveryDates[order.id]), "PPP") : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={deliveryDates[order.id] ? new Date(deliveryDates[order.id]) : undefined}
+                              onSelect={(date) => {
+                                if (date) {
+                                  const formattedDate = format(date, "yyyy-MM-dd");
+                                  setDeliveryDates(prev => ({ ...prev, [order.id]: formattedDate }));
+                                }
+                              }}
+                              initialFocus
+                              className="bg-card text-card-foreground border rounded-md shadow-lg"
+                            />
+                          </PopoverContent>
+                        </Popover>
                         <Button size="sm" onClick={() => updateStatus(order.id, "Shipped")} className="h-9 gap-1.5 bg-purple-600 hover:bg-purple-700 text-white w-full shadow-sm">
                           <Send size={14} /> Ship Order
                         </Button>
@@ -374,8 +413,8 @@ const AdminDashboard = () => {
     const singleRevenue = filteredOrders.filter(o => o.order_type === "Single").reduce((acc, o) => acc + o.total, 0);
     const subRevenue = totalRevenue - singleRevenue;
     const typeData = [
-      { name: "Single", value: singleRevenue, color: "#3b82f6" },
-      { name: "Subscription", value: subRevenue, color: "#8b5cf6" }
+      { name: "Single", value: singleRevenue, color: "#0ea5e9" },
+      { name: "Subscription", value: subRevenue, color: "#f43f5e" }
     ];
 
     return (
@@ -408,7 +447,7 @@ const AdminDashboard = () => {
             >All Time</Button>
           </div>
           <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 bg-card px-4 py-2 rounded-lg border shadow-sm">
-            <Calendar size={12} />
+            <CalendarIcon size={12} />
             Period: <span className="text-primary font-black">{dateRange}</span>
           </div>
         </div>
